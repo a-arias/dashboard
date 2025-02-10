@@ -120,7 +120,7 @@ export default defineConfig({
             } = options;
 
             const commands = ['/bin/sh', '-c', `TERM=xterm-256color; export TERM; ${ commandSend }`];
-            const url = buildExecUrl(CATTLE_TEST_URL, NAMESPACE, POD_NAME, CONTAINER_NAME, commands);
+            const url = buildPodExecUrl(CATTLE_TEST_URL, NAMESPACE, POD_NAME, CONTAINER_NAME, commands);
 
             const agent = new https.Agent({ rejectUnauthorized: false });
             const wsClient = new ws.WebSocket(url, 'base64.channel.k8s.io', {
@@ -172,7 +172,7 @@ function b64decode(s: any) {
   return Buffer.from(s.slice(1).toString('utf-8'), 'base64').toString('utf-8');
 }
 
-function buildExecUrl(baseUrl: string, namespace: string, podName: string, containerName: string, commands: any[]) {
+function buildPodExecUrl(baseUrl: string, namespace: string, podName: string, containerName: string, commands: any[]) {
   const urlBase = `${ baseUrl }/api/v1/namespaces/${ namespace }/pods/${ podName }/exec`;
   const params = new URLSearchParams({
     container: containerName,
