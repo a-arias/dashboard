@@ -139,7 +139,7 @@ export default defineConfig({
 
             wsClient.on('open', () => {
               console.log('Connection success');
-              wsClient.send(`${commandSend}`);
+              wsClient.send(`${ commandSend }`);
             });
 
             wsClient.on('message', (data: any) => {
@@ -153,7 +153,7 @@ export default defineConfig({
             });
 
             wsClient.on('error', (error: any) => {
-              reject(new Error(`WebSocket error: ${error.message}`));
+              reject(new Error(`WebSocket error: ${ error.message }`));
             });
           });
         },
