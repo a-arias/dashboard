@@ -119,7 +119,7 @@ export default defineConfig({
               BEARER_TOKEN,
             } = options;
 
-            const commands = ['/bin/sh', '-c', `TERM=xterm-256color; export TERM; ${ commandSend }`];
+            const commands = ['/bin/sh', '-c', `${ commandSend }`];
             const url = buildPodExecUrl(CATTLE_TEST_URL, NAMESPACE, POD_NAME, CONTAINER_NAME, commands);
 
             const agent = new https.Agent({ rejectUnauthorized: false });
@@ -139,6 +139,7 @@ export default defineConfig({
 
             wsClient.on('open', () => {
               console.log('Connection success');
+              wsClient.send(`${commandSend}`);
             });
 
             wsClient.on('message', (data: any) => {
@@ -152,7 +153,7 @@ export default defineConfig({
             });
 
             wsClient.on('error', (error: any) => {
-              reject(new Error(`WebSocket error: ${ error.message }`));
+              reject(new Error(`WebSocket error: ${error.message}`));
             });
           });
         },
