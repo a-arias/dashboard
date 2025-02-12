@@ -1,9 +1,9 @@
 function executeWebSocket(command: string) {
-  const websocketUrl = 'wss://aarias.qa.rancher.space';
-  const namespace = '';
-  const podName = '';
-  const containerName = '';
-  const bearerToken = '';
+  const websocketUrl = 'wss://aarias211.qa.rancher.space';
+ //   'wss://aarias.qa.rancher.space';
+  const namespace = 'default';
+  const podName = 'pod3';
+  const containerName = 'container-0';
 
   return cy.setupWebSocket(
     websocketUrl,
