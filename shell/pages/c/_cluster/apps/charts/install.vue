@@ -25,9 +25,12 @@ import Wizard from '@shell/components/Wizard';
 import TypeDescription from '@shell/components/TypeDescription';
 import ChartMixin from '@shell/mixins/chart';
 import ChildHook, { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
-import { CATALOG, MANAGEMENT, DEFAULT_WORKSPACE, CAPI } from '@shell/config/types';
+import {
+  CATALOG, MANAGEMENT, DEFAULT_WORKSPACE, CAPI, SECRET
+} from '@shell/config/types';
 import {
   CHART, FROM_CLUSTER, FROM_TOOLS, HIDE_SIDE_NAV, NAMESPACE, REPO, REPO_TYPE, VERSION, _FLAGGED
+  , _EDIT
 } from '@shell/config/query-params';
 import { CATALOG as CATALOG_ANNOTATIONS, PROJECT } from '@shell/config/labels-annotations';
 
@@ -40,6 +43,8 @@ import { findBy, insertAt } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { LINUX, WINDOWS } from '@shell/store/catalog';
 import { SETTING } from '@shell/config/settings';
+import { SECRET_TYPES } from '@shell/config/secret';
+import { generateRandomAlphaString } from '@shell/utils/string';
 
 const VALUES_STATE = {
   FORM: 'FORM',
@@ -370,6 +375,29 @@ export default {
 
     /* Look for annotation to say this app is a legacy migrated app (we look in either place for now) */
     this.migratedApp = (this.existing?.spec?.chart?.metadata?.annotations?.[CATALOG_ANNOTATIONS.MIGRATED] === 'true');
+
+    this.isAppCollection = (this.repo.metadata.annotations?.['catalog.cattle.io/ui-pull-secret-value'] === '[]global.imagePullSecrets');
+
+    if (this.isAppCollection) {
+      this.secrets = (await this.$store.dispatch('cluster/findAll', { type: SECRET })).filter((secret) => secret.id.search('clusterrepo-appco-auth-') > -1 );
+      this.secretsView = this.secrets.map((secret, index) => {
+        return {
+          id:         secret.id,
+          label:      secret.metadata.name,
+          name:       secret.metadata.name,
+          namespace:  secret.metadata.namespace,
+          secretType: secret._type,
+          index,
+        };
+      });
+      if (this.mode === _EDIT) {
+        this.selectedSecret = this.secretsView.find((secret) => secret.name === this.chartValues.global.imagePullSecrets[0]);
+      } else {
+        if (!this.selectedSecret && this.secretsView.length > 0 && this.repo.spec.clientSecret) {
+          this.selectedSecret = this.secretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+        }
+      }
+    }
   },
 
   data() {
@@ -411,6 +439,10 @@ export default {
       showCommandStep:         false,
       showCustomRegistryInput: false,
       isNamespaceNew:          false,
+      isAppCollection:         false,
+      selectedSecret:          null,
+      secrets:                 [],
+      secretsView:             [],
 
       stepBasic: {
         name:           'basics',
@@ -750,6 +782,17 @@ export default {
         if (project) {
           this.project = project.replace(':', '/');
         }
+
+        if (!this.secretsView.find((secret) => (secret.namespace === this.targetNamespace || secret.secretType === 'kubernetes.io/basic-auth') && this.selectedSecret.name === secret.name)) {
+          this.selectedSecret = this.secretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+        }
+      }
+    },
+
+    'selectedSecret'(neu) {
+      if (this.isAppCollection && neu) {
+        this.chartValues.global.imagePullSecrets = [neu.name];
+        this.valuesYaml = saferDump(this.chartValues);
       }
     },
 
@@ -988,6 +1031,42 @@ export default {
           btnCb(false);
 
           return;
+        }
+
+        if (this.isAppCollection) {
+          // First setup the imagePullSecretName, it will be used if it is not setup to create a new one
+          // Do not need to check if it is DOCKER_JSON because it has to be since it hasd been filtered before
+          let imagePullSecretName = '';
+
+          // If it is basicAuth it needs to create a new one with the DOCKER_JSON type
+          if (this.secrets[this.selectedSecret.index]._type === SECRET_TYPES.BASIC) {
+            // Create the secret for app collections
+            const secret = await this.$store.dispatch('cluster/create', {
+              type:     SECRET,
+              _type:    SECRET_TYPES.DOCKER_JSON,
+              metadata: {
+                name:      `${ this.secrets[0].id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5).toLowerCase() }`,
+                namespace: this.targetNamespace,
+              },
+              data: {}
+            });
+
+            const config = { auths: { 'dp.apps.rancher.io': this.secrets[this.selectedSecret.index].decodedData } };
+            const json = JSON.stringify(config);
+
+            secret.setData('.dockerconfigjson', json);
+
+            const result = await secret.save();
+            // Save the new secret
+
+            // Now use the secret to add to the input
+            imagePullSecretName = result.id.split('/')[1];
+          }
+
+          // Finally add the imagePullSecrets to the input, if it is already a DOCKER_JSON, it can use what has been setup on the page
+          if (imagePullSecretName) {
+            input.charts[0].values.global.imagePullSecrets = [imagePullSecretName];
+          }
         }
 
         const res = await this.repo.doAction((isUpgrade ? 'upgrade' : 'install'), input);
@@ -1427,6 +1506,7 @@ export default {
             </div>
           </div>
           <NameNsDescription
+            v-if="showNameEditor"
             v-model:value="value"
             :description-hidden="true"
             :mode="mode"
@@ -1456,6 +1536,29 @@ export default {
               />
             </template>
           </NameNsDescription>
+          <div
+            v-if="isAppCollection"
+            class="row mb-20"
+          >
+            This Chart requires an Image Pull Secret in order for images to be succesfully pulled. Select an existing Image Pull Secret or create a new one:
+          </div>
+          <div
+            v-if="isAppCollection"
+            class="row mb-20"
+          >
+            <div
+              class="col span-6"
+            >
+              <LabeledSelect
+                v-model:value="selectedSecret"
+                label="Image Pull Secret"
+                option-key="id"
+                :options="secretsView.filter((secret) => secret.namespace === targetNamespace || secret.secretType === 'kubernetes.io/basic-auth')"
+                :status="'info'"
+              />
+            </div>
+          </div>
+
           <Checkbox
             v-model:value="showCommandStep"
             class="mb-20"

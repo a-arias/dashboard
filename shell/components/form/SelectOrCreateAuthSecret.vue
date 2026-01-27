@@ -149,6 +149,11 @@ export default {
       type:    Boolean,
       default: false,
     },
+
+    fixedHttpBasicAuth: {
+      type:    Boolean,
+      default: false,
+    }
   },
 
   async fetch() {
@@ -194,6 +199,8 @@ export default {
       filteredSecrets: null,
 
       selected: null,
+
+      previousValue: null,
 
       filterByNamespace: this.namespace && this.limitToNamespace,
 
@@ -270,6 +277,10 @@ export default {
           value: id,
         };
       });
+
+      if (this.fixedHttpBasicAuth) {
+        out = out.filter((o) => o.label.search('clusterrepo-appco-auth-') === 0 || ['title', 'divider'].includes(o.kind) || o.value === AUTH_TYPE._BASIC);
+      }
 
       if (this.allowS3) {
         const more = this.allCloudCreds
@@ -361,6 +372,10 @@ export default {
         });
       }
 
+      if (this.fixedHttpBasicAuth) {
+        out = out.filter((o) => o.label.search('clusterrepo-appco-auth-') === 0 || ['title', 'divider'].includes(o.kind) || o.value === AUTH_TYPE._BASIC);
+      }
+
       return out;
     },
 
@@ -386,6 +401,17 @@ export default {
   },
 
   watch: {
+    fixedHttpBasicAuth: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal) {
+          this.previousValue = this.selected;
+          this.selected = AUTH_TYPE._BASIC;
+        } else {
+          this.selected = this.previousValue || AUTH_TYPE._NONE;
+        }
+      }
+    },
     selected:      'update',
     publicKey:     'updateKeyVal',
     privateKey:    'updateKeyVal',
@@ -418,7 +444,7 @@ export default {
 
   methods: {
     updateSelectedFromValue() {
-      let selected = this.preSelect?.selected || AUTH_TYPE._NONE;
+      let selected = this.preSelect?.selected || (this.fixedHttpBasicAuth ? AUTH_TYPE._BASIC : AUTH_TYPE._NONE);
 
       if ( this.value ) {
         if ( typeof this.value === 'object' ) {

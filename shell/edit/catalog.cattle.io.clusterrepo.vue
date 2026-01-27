@@ -31,7 +31,7 @@ export default {
   mixins: [CreateEditView],
 
   data() {
-    const clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
+    const clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? this.value.metadata.annotations['catalog.cattle.io/ui-pull-secret-value'] === '[]global.imagePullSecrets' ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
 
     return {
       CLUSTER_REPO_TYPES,
@@ -76,6 +76,12 @@ export default {
       case CLUSTER_REPO_TYPES.HELM_URL:
         this.resetOciValues();
         this.resetGitRepoValues();
+        break;
+      case CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION:
+        this.resetOciValues();
+        this.resetGitRepoValues();
+        this.resetHelmValues();
+        this.value.spec['url'] = 'oci://dp.apps.rancher.io/charts';
         break;
       }
       this.resetClientSecret();
@@ -141,11 +147,12 @@ export default {
     <h2>{{ t('catalog.repo.target.label') }}</h2>
     <div class="row mb-10">
       <div class="col span-8">
+        {{ clusterRepoType }}
         <RadioGroup
           v-model:value="clusterRepoType"
           :name="clusterRepoType"
-          :options="[CLUSTER_REPO_TYPES.HELM_URL, CLUSTER_REPO_TYPES.GIT_REPO, CLUSTER_REPO_TYPES.OCI_URL]"
-          :labels="[t('catalog.repo.target.http'), t('catalog.repo.target.git'), t('catalog.repo.target.oci', null, true)]"
+          :options="[CLUSTER_REPO_TYPES.HELM_URL, CLUSTER_REPO_TYPES.GIT_REPO, CLUSTER_REPO_TYPES.OCI_URL, CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION]"
+          :labels="[t('catalog.repo.target.http'), t('catalog.repo.target.git'), t('catalog.repo.target.oci', null, true), t('catalog.repo.target.suseAppCollection')]"
           :mode="mode"
           data-testid="clusterrepo-radio-input"
           @update:value="onTargetChange"
@@ -201,6 +208,20 @@ export default {
         </div>
       </template>
 
+      <template v-else-if="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION">
+        <div class="col span-6">
+          <LabeledInput
+            v-model:value.trim="value.spec.url"
+            :required="true"
+            :label="t('catalog.repo.oci.urlLabel')"
+            :placeholder="t('catalog.repo.oci.placeholder', null, true)"
+            :mode="mode"
+            data-testid="clusterrepo-oci-url-input"
+            :disabled="true"
+          />
+        </div>
+      </template>
+
       <div
         v-else
         class="col span-6"
@@ -240,8 +261,9 @@ export default {
       :limit-to-namespace="false"
       :in-store="inStore"
       :allow-ssh="clusterRepoType !== CLUSTER_REPO_TYPES.OCI_URL"
-      generate-name="clusterrepo-auth-"
+      :generate-name="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION ? 'clusterrepo-appco-auth-' : 'clusterrepo-auth-'"
       :cache-secrets="true"
+      :fixed-http-basic-auth="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION"
     />
 
     <div v-if="clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL">
