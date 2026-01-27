@@ -147,7 +147,6 @@ export default {
     <h2>{{ t('catalog.repo.target.label') }}</h2>
     <div class="row mb-10">
       <div class="col span-8">
-        {{ clusterRepoType }}
         <RadioGroup
           v-model:value="clusterRepoType"
           :name="clusterRepoType"
