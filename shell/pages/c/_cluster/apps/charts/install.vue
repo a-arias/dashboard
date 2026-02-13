@@ -391,7 +391,7 @@ export default {
         };
       });
       if (this.mode === _EDIT) {
-        this.selectedSecret = this.secretsView.find((secret) => secret.name === this.chartValues.global.imagePullSecrets[0]);
+        this.selectedSecret = this.secretsView.find((secret) => secret.name === this.chartValues?.global?.imagePullSecrets?.[0]);
       } else {
         if (!this.selectedSecret && this.secretsView.length > 0 && this.repo.spec.clientSecret) {
           this.selectedSecret = this.secretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
@@ -783,7 +783,7 @@ export default {
           this.project = project.replace(':', '/');
         }
 
-        if (!this.secretsView.find((secret) => (secret.namespace === this.targetNamespace || secret.secretType === 'kubernetes.io/basic-auth') && this.selectedSecret.name === secret.name)) {
+        if (this.selectedSecret && !this.secretsView.find((secret) => (secret.namespace === this.targetNamespace || secret.secretType === 'kubernetes.io/basic-auth') && this.selectedSecret.name === secret.name)) {
           this.selectedSecret = this.secretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
         }
       }
@@ -791,6 +791,9 @@ export default {
 
     'selectedSecret'(neu) {
       if (this.isAppCollection && neu) {
+        if (!this.chartValues.global) {
+          this.chartValues.global = {};
+        }
         this.chartValues.global.imagePullSecrets = [neu.name];
         this.valuesYaml = saferDump(this.chartValues);
       }
