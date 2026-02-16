@@ -223,7 +223,7 @@ export default class ClusterRepo extends SteveModel {
 
   async save() {
     // Add annotation only if the type is SUSE_APP_COLLECTION
-    if (this.spec.clientSecret.name.search('clusterrepo-appco-auth-') === 0) {
+    if (this.spec.clientSecret?.name?.search('clusterrepo-appco-auth-') === 0) {
       if (!this.metadata.annotations) {
         this.metadata.annotations = {};
       }
