@@ -1,0 +1,118 @@
+<script setup lang="ts">
+import RcButton from '@components/RcButton/RcButton.vue';
+
+type ToggleGroupItem = {
+  name: string;
+  description: string;
+  icon: string;
+  value: string;
+  disabled: boolean;
+}
+
+const modelValue = defineModel<string>();
+
+const props = defineProps<{
+  items: ToggleGroupItem[],
+  disabled?: boolean,
+}>();
+
+const update = (value: string) => {
+  if (props.disabled) {
+    return;
+  }
+
+  modelValue.value = value;
+};
+</script>
+
+<template>
+  <div
+    class="toggle-group"
+    data-testid="rancher-ai-ui-toggle-group"
+  >
+    <template
+      v-for="item in props.items"
+      :key="item.name"
+    >
+      <rc-button
+        ghost
+        class="toggle-group-item"
+        type="button"
+        :class="{ active: modelValue === item.value }"
+        :disabled="props.disabled && modelValue !== item.value || item.disabled"
+        :data-testid="`rancher-ai-ui-toggle-group-item-${item.value}`"
+        @click="update(item.value)"
+      >
+        <i :class="['icon', 'icon-2x', item.icon]" />
+        <div toggle-group-content>
+          <div class="toggle-group-item-name">
+            <span v-clean-html="item.name" />
+          </div>
+          <label class="text-label toggle-group-item-description">
+            <span v-clean-html="item.description" />
+          </label>
+        </div>
+      </rc-button>
+    </template>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  gap: .75rem;
+}
+
+button {
+  &.toggle-group-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    gap: 0.75rem;
+
+    min-width: 16rem;
+    border: 2px solid var(--input-border);
+    border-radius: 0.5rem;
+    background: var(--body-bg);
+    line-height: initial;
+
+    &.btn-medium {
+      padding: 14px 0;
+    }
+  }
+
+  &.active {
+    border-color: #3B82F6;
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  > .icon {
+    color: var(--active);
+  }
+
+  > .icon:not(:only-child) {
+    margin-right: initial;
+  }
+
+  &:hover {
+    > .icon {
+      color: var(--active-hover);
+    }
+  }
+}
+
+.toggle-group-item-name {
+  font-weight: bold;
+}
+
+.toggle-group-item-description {
+  font-size: 0.90rem;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+</style>

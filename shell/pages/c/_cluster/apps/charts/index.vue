@@ -26,6 +26,7 @@ import StatusLabel from '@shell/pages/c/_cluster/apps/charts/StatusLabel';
 import RichTranslation from '@shell/components/RichTranslation.vue';
 import { getLatestCompatibleVersion } from '@shell/utils/chart';
 import Select from '@shell/components/form/Select';
+import { getVersionData } from '@shell/config/version';
 
 const createInitialFilters = () => ({
   repos:      [],
@@ -130,7 +131,8 @@ export default {
       ],
       initialVisibleChartsCount: 30,
       visibleChartsCount:        20,
-      hasOverflow:               false
+      hasOverflow:               false,
+      getVersionData,
     };
   },
 
@@ -156,6 +158,12 @@ export default {
         component:      markRaw(AddRepoLink),
         componentProps: { clusterId: this.clusterId }
       });
+
+      return out;
+    },
+
+    suseAppCollectionRepo() {
+      const out = this.$store.getters['catalog/repos'].find((r) => r.metadata.annotations?.['catalog.cattle.io/ui-pull-secret-value'] === '[]global.imagePullSecrets');
 
       return out;
     },
@@ -570,6 +578,28 @@ export default {
       color="error"
       :label="err"
     />
+    <Banner
+      v-if="suseAppCollectionRepo && getVersionData()?.RancherPrime"
+      :key="i"
+      color="info"
+      closable
+    >
+      <RichTranslation
+        k="catalog.charts.appCollectionRepoMissing"
+        tag="div"
+        :raw="true"
+      >
+        <template #repoCreate="{ content }">
+          <router-link
+            :to="{ name: 'c-cluster-product-resource-create', params: { resource: 'catalog.cattle.io.clusterrepo', cluster: $route.params.cluster, product: $store.getters['productId'] }, query: { target: 'suse-application-collection' } }"
+            class="secondary-text-link"
+            tabindex="0"
+          >
+            {{ content }}
+          </router-link>
+        </template>
+      </RichTranslation>
+    </Banner>
 
     <div class="wrapper">
       <FilterPanel

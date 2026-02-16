@@ -376,25 +376,59 @@ export default {
     /* Look for annotation to say this app is a legacy migrated app (we look in either place for now) */
     this.migratedApp = (this.existing?.spec?.chart?.metadata?.annotations?.[CATALOG_ANNOTATIONS.MIGRATED] === 'true');
 
+    // Annotation was added to the repo to indicate that this is a SUSE App Collection chart, which has different auth requirements and requires the user to select from a list of secrets in the cluster
     this.isAppCollection = (this.repo.metadata.annotations?.['catalog.cattle.io/ui-pull-secret-value'] === '[]global.imagePullSecrets');
 
     if (this.isAppCollection) {
       this.secrets = (await this.$store.dispatch('cluster/findAll', { type: SECRET })).filter((secret) => secret.id.search('clusterrepo-appco-auth-') > -1 );
-      this.secretsView = this.secrets.map((secret, index) => {
+      const defaultSelectedSecret = this.secrets.find((secret) => secret.metadata.name === this.repo.spec.clientSecret.name);
+
+      this.appCoSecretsView = this.secrets.map((secret, index) => {
+        const label = defaultSelectedSecret.id === secret.id ? `${ secret.metadata.name } (Default)` : secret.metadata.name;
+
         return {
           id:         secret.id,
-          label:      secret.metadata.name,
+          label,
           name:       secret.metadata.name,
           namespace:  secret.metadata.namespace,
           secretType: secret._type,
           index,
         };
+      }).filter((secret) => !(secret.id.search('image-pull-secret') > -1) );
+
+      this.appCoImagePullSecretView = this.secrets.map((secret, index) => {
+        return {
+          id:                secret.id,
+          label:             secret.metadata.name,
+          name:              secret.metadata.name,
+          namespace:         secret.metadata.namespace,
+          secretType:        secret._type,
+          creationTimestamp: secret.metadata.creationTimestamp,
+          index,
+        };
+      }).filter((secret) => secret.id.search('image-pull-secret') > -1 ).sort((a, b) => a.creationTimestamp < b.creationTimestamp ? -1 : 1);
+
+      this.appCoImagePullSecretView.unshift( {
+        label: this.t('catalog.install.steps.basics.createAnImagePullSecret'),
+        value: 'CREATE_NEW_IMAGE_PULL_SECRET',
+        kind:  'highlighted'
+      }, {
+        label:    'divider',
+        disabled: true,
+        kind:     'divider'
       });
+
       if (this.mode === _EDIT) {
-        this.selectedSecret = this.secretsView.find((secret) => secret.name === this.chartValues?.global?.imagePullSecrets?.[0]);
+        this.selectedSecret = this.appCoSecretsView.find((secret) => secret.name === this.chartValues?.global?.imagePullSecrets?.[0]);
+        if (this.selectedSecret) {
+          this.selectedImagePullSecret = this.appCoImagePullSecretView.find((secret) => secret.name === this.chartValues?.global?.imagePullSecrets?.[0]);
+        } else {
+          this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
+        }
       } else {
-        if (!this.selectedSecret && this.secretsView.length > 0 && this.repo.spec.clientSecret) {
-          this.selectedSecret = this.secretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+        if (!this.selectedSecret && this.appCoSecretsView.length > 0 && this.repo.spec.clientSecret) {
+          this.selectedSecret = this.appCoSecretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+          this.selectedImagePullSecret = this.appCoImagePullSecretView[2] ? this.appCoImagePullSecretView[2] : 'CREATE_NEW_IMAGE_PULL_SECRET';
         }
       }
     }
@@ -429,22 +463,24 @@ export default {
 
       nameDisabled: false,
 
-      preFormYamlOption:       VALUES_STATE.YAML,
-      formYamlOption:          VALUES_STATE.YAML,
-      showDiff:                false,
-      showValuesComponent:     true,
-      showQuestions:           true,
-      showSlideIn:             false,
-      shownReadmeWindows:      [],
-      showCommandStep:         false,
-      showCustomRegistryInput: false,
-      isNamespaceNew:          false,
-      isAppCollection:         false,
-      selectedSecret:          null,
-      secrets:                 [],
-      secretsView:             [],
-
-      stepBasic: {
+      preFormYamlOption:        VALUES_STATE.YAML,
+      formYamlOption:           VALUES_STATE.YAML,
+      showDiff:                 false,
+      showValuesComponent:      true,
+      showQuestions:            true,
+      showSlideIn:              false,
+      shownReadmeWindows:       [],
+      showCommandStep:          false,
+      showCustomRegistryInput:  false,
+      isNamespaceNew:           false,
+      isAppCollection:          false,
+      selectedSecret:           null,
+      secrets:                  [],
+      secretsView:              [],
+      appCoSecretsView:         [],
+      selectedImagePullSecret:  null,
+      appCoImagePullSecretView: [],
+      stepBasic:                {
         name:           'basics',
         label:          this.t('catalog.install.steps.basics.label'),
         subtext:        this.t('catalog.install.steps.basics.subtext'),
@@ -783,18 +819,48 @@ export default {
           this.project = project.replace(':', '/');
         }
 
-        if (this.selectedSecret && !this.secretsView.find((secret) => (secret.namespace === this.targetNamespace || secret.secretType === 'kubernetes.io/basic-auth') && this.selectedSecret.name === secret.name)) {
-          this.selectedSecret = this.secretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+        if (this.selectedSecret && !this.appCoImagePullSecretView.find((secret) => secret.namespace === this.targetNamespace && this.selectedImagePullSecret.name === secret.name)) {
+          const defaultSelectedSecret = this.appCoSecretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+
+          this.selectedSecret = defaultSelectedSecret;
+
+          const defaultImagePullSecret = this.appCoImagePullSecretView.find((secret) => (secret.namespace === this.targetNamespace && secret.name?.includes(this.selectedSecret?.name)));
+
+          if (this.selectedSecret && defaultImagePullSecret) {
+            this.selectedImagePullSecret = defaultImagePullSecret;
+          } else {
+            this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
+          }
         }
       }
     },
 
     'selectedSecret'(neu) {
-      if (this.isAppCollection && neu) {
+      if (this.isAppCollection) {
+        const defaultImagePullSecret = this.appCoImagePullSecretView.find((secret) => (secret.namespace === this.targetNamespace && secret.name?.includes(neu?.name)));
+
+        if (neu && defaultImagePullSecret) {
+          this.selectedImagePullSecret = defaultImagePullSecret;
+        } else {
+          this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
+          this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5).toLowerCase() }`;
+          this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
+        }
+      }
+    },
+
+    'selectedImagePullSecret'(neu) {
+      if (this.isAppCollection) {
         if (!this.chartValues.global) {
           this.chartValues.global = {};
         }
-        this.chartValues.global.imagePullSecrets = [neu.name];
+
+        if (neu === 'CREATE_NEW_IMAGE_PULL_SECRET') {
+          this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5).toLowerCase() }`;
+          this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
+        } else {
+          this.chartValues.global.imagePullSecrets = [neu.name];
+        }
         this.valuesYaml = saferDump(this.chartValues);
       }
     },
@@ -1042,13 +1108,13 @@ export default {
           let imagePullSecretName = '';
 
           // If it is basicAuth it needs to create a new one with the DOCKER_JSON type
-          if (this.secrets[this.selectedSecret.index]._type === SECRET_TYPES.BASIC) {
+          if (this.selectedImagePullSecret === 'CREATE_NEW_IMAGE_PULL_SECRET') {
             // Create the secret for app collections
             const secret = await this.$store.dispatch('cluster/create', {
               type:     SECRET,
               _type:    SECRET_TYPES.DOCKER_JSON,
               metadata: {
-                name:      `${ this.secrets[0].id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5).toLowerCase() }`,
+                name:      this.generatedNameForImagePullSecret,
                 namespace: this.targetNamespace,
               },
               data: {}
@@ -1543,7 +1609,7 @@ export default {
             v-if="isAppCollection"
             class="row mb-20"
           >
-            This Chart requires an Image Pull Secret in order for images to be succesfully pulled. Select an existing Image Pull Secret or create a new one:
+            {{ t('catalog.install.steps.basics.selectRepoAuth') }}
           </div>
           <div
             v-if="isAppCollection"
@@ -1554,10 +1620,38 @@ export default {
             >
               <LabeledSelect
                 v-model:value="selectedSecret"
-                label="Image Pull Secret"
+                label-key="catalog.install.steps.basics.suseAppCoAuthentication"
                 option-key="id"
-                :options="secretsView.filter((secret) => secret.namespace === targetNamespace || secret.secretType === 'kubernetes.io/basic-auth')"
+                :options="appCoSecretsView"
                 :status="'info'"
+              />
+            </div>
+          </div>
+          <div
+            v-if="isAppCollection"
+            class="row mb-20"
+          >
+            {{ t('catalog.install.steps.basics.appCollectionImagePullSecret') }}
+          </div>
+          <div
+            v-if="isAppCollection"
+            class="row mb-20"
+          >
+            <div
+              class="col span-6"
+            >
+              <LabeledSelect
+                v-model:value="selectedImagePullSecret"
+                label-key="catalog.install.steps.basics.imagePullSecret"
+                option-key="id"
+                :options="appCoImagePullSecretView.filter((secret) => (secret.namespace === targetNamespace && secret.name?.includes(selectedSecret?.name)) || secret.value === 'CREATE_NEW_IMAGE_PULL_SECRET' || secret.kind === 'divider')"
+                :status="'info'"
+              />
+              <Banner
+                v-if="selectedImagePullSecret === 'CREATE_NEW_IMAGE_PULL_SECRET'"
+                color="info"
+                class="mt-10"
+                :label="t('catalog.install.steps.basics.generatedImagePullSecretBanner', {imagePullSecretName: generatedNameForImagePullSecret })"
               />
             </div>
           </div>
