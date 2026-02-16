@@ -7,11 +7,13 @@ import Metadata from '@shell/components/Resource/Detail/Metadata/index.vue';
 import { useDefaultMetadataForLegacyPagesProps } from '@shell/components/Resource/Detail/Metadata/composables';
 import { useResourceDetailBannerProps } from '@shell/components/Resource/Detail/composables';
 import { computed } from 'vue';
+import Cards from '@shell/components/Resource/Detail/Cards.vue';
 
 // We are disabling eslint for this script to allow the use of the Props interface
 export interface Props {
   value?: Object;
   resourceSubtype?: string;
+  isCustomDetailOrEdit?: boolean;
 }
 
 </script>
@@ -19,7 +21,7 @@ export interface Props {
 <script lang="ts" setup>
 import { useStore } from 'vuex';
 
-const props = withDefaults(defineProps<Props>(), { value: () => ({}), resourceSubtype: undefined });
+const props = withDefaults(defineProps<Props>(), { value: () => ({}), resourceSubtype: undefined, isCustomDetailOrEdit: false });
 
 const uiCtxResource = computed(() => {
   const {
@@ -62,7 +64,12 @@ const store = useStore();
     />
     <Metadata
       v-bind="metadataProps"
-      class="mmt-4"
+      class="metadata-section"
+    />
+    <Cards
+      v-if="props.isCustomDetailOrEdit"
+      class="cards-section"
+      :resource="props.value"
     />
   </div>
 </template>
@@ -71,5 +78,15 @@ const store = useStore();
 .new.state-banner {
   margin: 0;
   margin-top: 16px;
+}
+
+:deep() .metadata-section {
+  margin-top: 16px;
+  margin-bottom: 24px;
+}
+
+.cards-section {
+  margin: 0;
+  margin-bottom: 24px;
 }
 </style>

@@ -61,6 +61,7 @@ export const POD_DISRUPTION_BUDGET = 'policy.poddisruptionbudget';
 export const PV = 'persistentvolume';
 export const PVC = 'persistentvolumeclaim';
 export const RESOURCE_QUOTA = 'resourcequota';
+export const AUDIT_POLICY = 'auditlog.cattle.io.auditpolicy';
 export const SCHEMA = 'schema';
 export const SERVICE = 'service';
 export const SECRET = 'secret';
@@ -262,7 +263,10 @@ export const BRAND = {
   RGS:     'rgs',
 };
 
-export const EXT = { USER_ACTIVITY: 'ext.cattle.io.useractivity' };
+export const EXT = {
+  USER_ACTIVITY: 'ext.cattle.io.useractivity',
+  KUBECONFIG:    'ext.cattle.io.kubeconfig',
+};
 
 export const CAPI = {
   CAPI_CLUSTER:         'cluster.x-k8s.io.cluster',

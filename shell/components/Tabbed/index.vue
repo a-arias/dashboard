@@ -83,6 +83,11 @@ export default {
     componentTestid: {
       type:    String,
       default: 'tabbed'
+    },
+
+    removeBorders: {
+      type:    Boolean,
+      default: false,
     }
   },
 
@@ -202,7 +207,7 @@ export default {
         return TabLocation.OTHER;
       }
     },
-    hasIcon(tab) {
+    hasErrorIcon(tab) {
       return tab.displayAlertIcon || (tab.error && !tab.active);
     },
     hashChange() {
@@ -303,7 +308,8 @@ export default {
     class="tabbed-container"
     :class="{
       'side-tabs': !!sideTabs,
-      'tabs-only': tabsOnly
+      'tabs-only': tabsOnly,
+      'remove-borders': removeBorders
     }"
     :data-testid="componentTestid"
   >
@@ -312,7 +318,7 @@ export default {
       ref="tablist"
       role="tablist"
       class="tabs"
-      :class="{'clearfix':!sideTabs, 'vertical': sideTabs, 'horizontal': !sideTabs}"
+      :class="{'clearfix':!sideTabs, 'vertical': sideTabs, 'horizontal': !sideTabs, 'remove-borders': removeBorders}"
       :data-testid="`${componentTestid}-block`"
       tabindex="0"
       @keydown.right.prevent="selectNext(1)"
@@ -340,6 +346,10 @@ export default {
           @click.prevent="select(tab.name, $event)"
           @keyup.enter.space="select(tab.name, $event)"
         >
+          <i
+            v-if="tab.labelIcon"
+            :class="`tab-label-icon icon ${tab.labelIcon}`"
+          />
           <span>
             {{ tab.labelDisplay }}
           </span>
@@ -348,7 +358,7 @@ export default {
             class="tab-badge"
           >{{ tab.badge }}</span>
           <i
-            v-if="hasIcon(tab)"
+            v-if="hasErrorIcon(tab)"
             v-clean-tooltip="t('validation.tab')"
             class="conditions-alert-icon icon-error"
           />
@@ -448,6 +458,17 @@ export default {
     display: flex;
     flex-direction: row;
 
+    &.remove-borders {
+      border: none;
+
+      + .tab-container {
+        border: none;
+        border-top: 1px solid var(--border);
+        padding: 0;
+        padding-top: 24px;
+      }
+    }
+
     + .tab-container {
       border: solid thin var(--border);
     }
@@ -464,7 +485,7 @@ export default {
   .tab {
     position: relative;
     float: left;
-    padding: 0 8px 0 0;
+    padding: 0 4px 0 4px;
     cursor: pointer;
 
     A {
@@ -497,9 +518,13 @@ export default {
     }
 
     &.error {
-      & A > i {
+      & A > .icon-error {
         color: var(--error);
       }
+    }
+
+    .tab-label-icon {
+      margin-right: 8px;
     }
 
     .tab-badge {
