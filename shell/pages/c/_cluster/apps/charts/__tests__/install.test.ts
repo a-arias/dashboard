@@ -15,6 +15,7 @@ describe('page: Install', () => {
       }),
       getters: {
         'catalog/inStore':         'cluster',
+        'catalog/repo':            () => ({ metadata: { name: 'test-repo' } }),
         'features/get':            () => false,
         defaultNamespace:          'default',
         'i18n/withFallback':       (key: string) => key,

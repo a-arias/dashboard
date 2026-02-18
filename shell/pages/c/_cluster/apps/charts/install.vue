@@ -30,7 +30,6 @@ import {
 } from '@shell/config/types';
 import {
   CHART, FROM_CLUSTER, FROM_TOOLS, HIDE_SIDE_NAV, NAMESPACE, REPO, REPO_TYPE, VERSION, _FLAGGED
-  , _EDIT
 } from '@shell/config/query-params';
 import { CATALOG as CATALOG_ANNOTATIONS, PROJECT } from '@shell/config/labels-annotations';
 
@@ -44,7 +43,6 @@ import { saferDump } from '@shell/utils/create-yaml';
 import { LINUX, WINDOWS } from '@shell/store/catalog';
 import { SETTING } from '@shell/config/settings';
 import { SECRET_TYPES } from '@shell/config/secret';
-import { generateRandomAlphaString } from '@shell/utils/string';
 
 const VALUES_STATE = {
   FORM: 'FORM',
