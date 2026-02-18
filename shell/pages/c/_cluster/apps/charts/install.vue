@@ -376,111 +376,84 @@ export default {
     /* Look for annotation to say this app is a legacy migrated app (we look in either place for now) */
     this.migratedApp = (this.existing?.spec?.chart?.metadata?.annotations?.[CATALOG_ANNOTATIONS.MIGRATED] === 'true');
 
-    // Annotation was added to the repo to indicate that this is a SUSE App Collection chart, which has different auth requirements and requires the user to select from a list of secrets in the cluster
-    this.isAppCollection = (this.repo.metadata.annotations?.['catalog.cattle.io/ui-pull-secret-value'] === '[]global.imagePullSecrets');
+    if (this.repo.isSuseAppCollection) {
+      let defaultSelectedSecret = await this.$store.getters['cluster/byId'](SECRET, `cattle-system/${ this.repo.spec.clientSecret.name }`);
 
-    if (this.isAppCollection) {
-      this.secrets = (await this.$store.dispatch('cluster/findAll', { type: SECRET })).filter((secret) => secret.id.search('clusterrepo-appco-auth-') > -1 );
-      const defaultSelectedSecret = this.secrets.find((secret) => secret.metadata.name === this.repo.spec.clientSecret.name);
-
-      this.appCoSecretsView = this.secrets.map((secret, index) => {
-        const label = defaultSelectedSecret.id === secret.id ? `${ secret.metadata.name } (Default)` : secret.metadata.name;
-
-        return {
-          id:         secret.id,
-          label,
-          name:       secret.metadata.name,
-          namespace:  secret.metadata.namespace,
-          secretType: secret._type,
-          index,
-        };
-      }).filter((secret) => !(secret.id.search('image-pull-secret') > -1) );
-
-      this.appCoImagePullSecretView = this.secrets.map((secret, index) => {
-        return {
-          id:                secret.id,
-          label:             secret.metadata.name,
-          name:              secret.metadata.name,
-          namespace:         secret.metadata.namespace,
-          secretType:        secret._type,
-          creationTimestamp: secret.metadata.creationTimestamp,
-          index,
-        };
-      }).filter((secret) => secret.id.search('image-pull-secret') > -1 ).sort((a, b) => a.creationTimestamp < b.creationTimestamp ? -1 : 1);
-
-      this.appCoImagePullSecretView.unshift( {
-        label: this.t('catalog.install.steps.basics.createAnImagePullSecret'),
-        value: 'CREATE_NEW_IMAGE_PULL_SECRET',
-        kind:  'highlighted'
-      }, {
-        label:    'divider',
-        disabled: true,
-        kind:     'divider'
-      });
-
-      if (this.mode === _EDIT) {
-        this.selectedSecret = this.appCoSecretsView.find((secret) => secret.name === this.chartValues?.global?.imagePullSecrets?.[0]);
-        if (this.selectedSecret) {
-          this.selectedImagePullSecret = this.appCoImagePullSecretView.find((secret) => secret.name === this.chartValues?.global?.imagePullSecrets?.[0]);
-        } else {
-          this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
+      if (!defaultSelectedSecret) {
+        try {
+          defaultSelectedSecret = (await this.$store.dispatch('cluster/find', { type: SECRET, id: `cattle-system/${ this.repo.spec.clientSecret.name }` }));
+        } catch (e) {
+          // If the secret doesn't exist, that's fine, we'll just create a new one later
         }
+      }
+
+      this.selectedSecret = defaultSelectedSecret;
+
+      let defaultImagePullSecret = this.$store.getters['cluster/byId'](SECRET, `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret`);
+
+      if (!defaultImagePullSecret) {
+        try {
+          defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
+        } catch (e) {
+          // If the secret doesn't exist, that's fine, we'll just create a new one later
+        }
+      }
+
+      if (defaultImagePullSecret) {
+        this.selectedImagePullSecret = defaultImagePullSecret;
       } else {
-        if (!this.selectedSecret && this.appCoSecretsView.length > 0 && this.repo.spec.clientSecret) {
-          this.selectedSecret = this.appCoSecretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
-          this.selectedImagePullSecret = this.appCoImagePullSecretView[2] ? this.appCoImagePullSecretView[2] : 'CREATE_NEW_IMAGE_PULL_SECRET';
-        }
+        this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
+        this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret`;
+        this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
       }
     }
   },
 
   data() {
     return {
-      defaultRegistrySetting: '',
-      customRegistrySetting:  '',
-      serverUrlSetting:       null,
-      chartValues:            null,
-      clusterRegistry:        '',
-      originalYamlValues:     null,
-      previousYamlValues:     null,
-      errors:                 null,
-      existing:               null,
-      globalRegistry:         '',
-      forceNamespace:         null,
-      loadedVersion:          null,
-      loadedVersionValues:    null,
-      legacyApp:              null,
-      mcapp:                  null,
-      mode:                   null,
-      value:                  null,
-      valuesComponent:        null,
-      valuesYaml:             '',
-      project:                null,
-      migratedApp:            false,
+      defaultRegistrySetting:          '',
+      customRegistrySetting:           '',
+      serverUrlSetting:                null,
+      chartValues:                     null,
+      clusterRegistry:                 '',
+      originalYamlValues:              null,
+      previousYamlValues:              null,
+      errors:                          null,
+      existing:                        null,
+      globalRegistry:                  '',
+      forceNamespace:                  null,
+      loadedVersion:                   null,
+      loadedVersionValues:             null,
+      legacyApp:                       null,
+      mcapp:                           null,
+      mode:                            null,
+      value:                           null,
+      valuesComponent:                 null,
+      valuesYaml:                      '',
+      project:                         null,
+      migratedApp:                     false,
       defaultCmdOpts,
-      customCmdOpts:          { ...defaultCmdOpts },
-      autoInstallInfo:        [],
-
-      nameDisabled: false,
-
-      preFormYamlOption:        VALUES_STATE.YAML,
-      formYamlOption:           VALUES_STATE.YAML,
-      showDiff:                 false,
-      showValuesComponent:      true,
-      showQuestions:            true,
-      showSlideIn:              false,
-      shownReadmeWindows:       [],
-      showCommandStep:          false,
-      showCustomRegistryInput:  false,
-      isNamespaceNew:           false,
-      isAppCollection:          false,
-      selectedSecret:           null,
-      secrets:                  [],
-      secretsView:              [],
-      appCoSecretsView:         [],
-      selectedImagePullSecret:  null,
-      appCoImagePullSecretView: [],
-      stepBasic:                {
+      customCmdOpts:                   { ...defaultCmdOpts },
+      autoInstallInfo:                 [],
+      nameDisabled:                    false,
+      preFormYamlOption:               VALUES_STATE.YAML,
+      formYamlOption:                  VALUES_STATE.YAML,
+      showDiff:                        false,
+      showValuesComponent:             true,
+      showQuestions:                   true,
+      showSlideIn:                     false,
+      shownReadmeWindows:              [],
+      showCommandStep:                 false,
+      showCustomRegistryInput:         false,
+      isNamespaceNew:                  false,
+      selectedSecret:                  null,
+      secrets:                         [],
+      secretsView:                     [],
+      appCoSecretsView:                [],
+      selectedImagePullSecret:         null,
+      appCoImagePullSecretView:        [],
+      generatedNameForImagePullSecret: null,
+      stepBasic:                       {
         name:           'basics',
         label:          this.t('catalog.install.steps.basics.label'),
         subtext:        this.t('catalog.install.steps.basics.subtext'),
@@ -546,6 +519,20 @@ export default {
 
     showProject() {
       return this.isRancher && !this.existing && this.forceNamespace;
+    },
+
+    selectedRepoAuthBanner() {
+      if (!this.selectedSecret) {
+        return '';
+      }
+
+      const selectedRepoAuth = this.t('catalog.install.steps.basics.selectedRepoAuth', { repoAuthenticationName: this.selectedSecret.name }, {}, true);
+
+      if (this.selectedImagePullSecret === 'CREATE_NEW_IMAGE_PULL_SECRET') {
+        return `${ selectedRepoAuth } ${ this.t('catalog.install.steps.basics.generatedImagePullSecretBanner', { imagePullSecretName: this.generatedNameForImagePullSecret }, {}, true) }`;
+      }
+
+      return `${ selectedRepoAuth } ${ this.t('catalog.install.steps.basics.usePreviouslygeneratedImagePullSecretBanner', { imagePullSecretName: this.selectedImagePullSecret?.name }, {}, true) }`;
     },
 
     projectOpts() {
@@ -809,7 +796,7 @@ export default {
       }
     },
 
-    'value.metadata.namespace'(neu, old) {
+    async 'value.metadata.namespace'(neu, old) {
       if (neu) {
         const ns = this.$store.getters['cluster/byId'](NAMESPACE, this.value.metadata.namespace);
 
@@ -819,49 +806,25 @@ export default {
           this.project = project.replace(':', '/');
         }
 
-        if (this.selectedSecret && !this.appCoImagePullSecretView.find((secret) => secret.namespace === this.targetNamespace && this.selectedImagePullSecret.name === secret.name)) {
-          const defaultSelectedSecret = this.appCoSecretsView.find((secret) => secret.name === this.repo.spec.clientSecret.name);
+        if (this.selectedSecret) {
+          let defaultImagePullSecret = this.$store.getters['cluster/byId'](SECRET, `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret`);
 
-          this.selectedSecret = defaultSelectedSecret;
+          if (!defaultImagePullSecret) {
+            try {
+              defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
+            } catch (e) {
+              // If the secret doesn't exist, that's fine, we'll just create a new one later
+            }
+          }
 
-          const defaultImagePullSecret = this.appCoImagePullSecretView.find((secret) => (secret.namespace === this.targetNamespace && secret.name?.includes(this.selectedSecret?.name)));
-
-          if (this.selectedSecret && defaultImagePullSecret) {
+          if (defaultImagePullSecret) {
             this.selectedImagePullSecret = defaultImagePullSecret;
           } else {
             this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
+            this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
           }
+          this.valuesYaml = saferDump(this.chartValues);
         }
-      }
-    },
-
-    'selectedSecret'(neu) {
-      if (this.isAppCollection) {
-        const defaultImagePullSecret = this.appCoImagePullSecretView.find((secret) => (secret.namespace === this.targetNamespace && secret.name?.includes(neu?.name)));
-
-        if (neu && defaultImagePullSecret) {
-          this.selectedImagePullSecret = defaultImagePullSecret;
-        } else {
-          this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
-          this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5).toLowerCase() }`;
-          this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
-        }
-      }
-    },
-
-    'selectedImagePullSecret'(neu) {
-      if (this.isAppCollection) {
-        if (!this.chartValues.global) {
-          this.chartValues.global = {};
-        }
-
-        if (neu === 'CREATE_NEW_IMAGE_PULL_SECRET') {
-          this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5).toLowerCase() }`;
-          this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
-        } else {
-          this.chartValues.global.imagePullSecrets = [neu.name];
-        }
-        this.valuesYaml = saferDump(this.chartValues);
       }
     },
 
@@ -1102,7 +1065,7 @@ export default {
           return;
         }
 
-        if (this.isAppCollection) {
+        if (this.repo.isSuseAppCollection) {
           // First setup the imagePullSecretName, it will be used if it is not setup to create a new one
           // Do not need to check if it is DOCKER_JSON because it has to be since it hasd been filtered before
           let imagePullSecretName = '';
@@ -1120,7 +1083,7 @@ export default {
               data: {}
             });
 
-            const config = { auths: { 'dp.apps.rancher.io': this.secrets[this.selectedSecret.index].decodedData } };
+            const config = { auths: { 'dp.apps.rancher.io': this.selectedSecret?.decodedData } };
             const json = JSON.stringify(config);
 
             secret.setData('.dockerconfigjson', json);
@@ -1136,6 +1099,11 @@ export default {
           if (imagePullSecretName) {
             input.charts[0].values.global.imagePullSecrets = [imagePullSecretName];
           }
+
+          input.charts[0].annotations = {
+            ...input.charts[0].annotations,
+            [CATALOG_ANNOTATIONS.SUSE_APP_COLLECTION]: 'true'
+          };
         }
 
         const res = await this.repo.doAction((isUpgrade ? 'upgrade' : 'install'), input);
@@ -1606,53 +1574,20 @@ export default {
             </template>
           </NameNsDescription>
           <div
-            v-if="isAppCollection"
-            class="row mb-20"
-          >
-            {{ t('catalog.install.steps.basics.selectRepoAuth') }}
-          </div>
-          <div
-            v-if="isAppCollection"
+            v-if="repo.isSuseAppCollection"
             class="row mb-20"
           >
             <div
-              class="col span-6"
+              class="col span-12"
             >
-              <LabeledSelect
-                v-model:value="selectedSecret"
-                label-key="catalog.install.steps.basics.suseAppCoAuthentication"
-                option-key="id"
-                :options="appCoSecretsView"
-                :status="'info'"
-              />
-            </div>
-          </div>
-          <div
-            v-if="isAppCollection"
-            class="row mb-20"
-          >
-            {{ t('catalog.install.steps.basics.appCollectionImagePullSecret') }}
-          </div>
-          <div
-            v-if="isAppCollection"
-            class="row mb-20"
-          >
-            <div
-              class="col span-6"
-            >
-              <LabeledSelect
-                v-model:value="selectedImagePullSecret"
-                label-key="catalog.install.steps.basics.imagePullSecret"
-                option-key="id"
-                :options="appCoImagePullSecretView.filter((secret) => (secret.namespace === targetNamespace && secret.name?.includes(selectedSecret?.name)) || secret.value === 'CREATE_NEW_IMAGE_PULL_SECRET' || secret.kind === 'divider')"
-                :status="'info'"
-              />
               <Banner
-                v-if="selectedImagePullSecret === 'CREATE_NEW_IMAGE_PULL_SECRET'"
                 color="info"
                 class="mt-10"
-                :label="t('catalog.install.steps.basics.generatedImagePullSecretBanner', {imagePullSecretName: generatedNameForImagePullSecret })"
-              />
+              >
+                <span
+                  v-clean-html="selectedRepoAuthBanner"
+                />
+              </Banner>
             </div>
           </div>
 

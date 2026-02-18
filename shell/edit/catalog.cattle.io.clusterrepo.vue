@@ -8,6 +8,7 @@ import SelectOrCreateAuthSecret from '@shell/components/form/SelectOrCreateAuthS
 import Banner from '@components/Banner/Banner.vue';
 import { Checkbox } from '@components/Form/Checkbox';
 import { MANAGEMENT, NAMESPACE, CLUSTER_REPO_TYPES } from '@shell/config/types';
+import { CATALOG } from '@shell/config/labels-annotations';
 import UnitInput from '@shell/components/form/UnitInput.vue';
 import { getVersionData } from '@shell/config/version';
 import ToggleGroup from '@shell/components/Toggle/toggle-group.vue';
@@ -40,7 +41,7 @@ export default {
     if (targetFromQuery && Object.values(CLUSTER_REPO_TYPES).includes(targetFromQuery)) {
       clusterRepoType = targetFromQuery;
     } else {
-      clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? this.value.metadata.annotations['catalog.cattle.io/ui-pull-secret-value'] === '[]global.imagePullSecrets' ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
+      clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? this.value.metadata.annotations[CATALOG.SUSE_APP_COLLECTION] ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
     }
 
     const activeChatbotOptions = [
@@ -71,11 +72,13 @@ export default {
     return {
       CLUSTER_REPO_TYPES,
       clusterRepoType,
-      ociMinWait:    this.value.spec.exponentialBackOffValues?.minWait,
-      ociMaxWait:    this.value.spec.exponentialBackOffValues?.maxWait,
-      ociMaxRetries: this.value.spec.exponentialBackOffValues?.maxRetries,
+      ociMinWait:          this.value.spec.exponentialBackOffValues?.minWait,
+      ociMaxWait:          this.value.spec.exponentialBackOffValues?.maxWait,
+      ociMaxRetries:       this.value.spec.exponentialBackOffValues?.maxRetries,
       getVersionData,
       activeChatbotOptions,
+      previousName:        '',
+      previousDescription: '',
     };
   },
 
@@ -103,22 +106,26 @@ export default {
       case CLUSTER_REPO_TYPES.GIT_REPO:
         this.resetOciValues();
         this.resetHelmValues();
+        this.resetNameAndDescription();
         break;
       case CLUSTER_REPO_TYPES.OCI_URL:
         // set insecurePlainHttp to false as a secondary flag, alongside checking for 'oci://' in the URL, to determine OCI type later
         this.value.spec['insecurePlainHttp'] = false;
         this.resetGitRepoValues();
         this.resetHelmValues();
+        this.resetNameAndDescription();
         break;
       case CLUSTER_REPO_TYPES.HELM_URL:
         this.resetOciValues();
         this.resetGitRepoValues();
+        this.resetNameAndDescription();
         break;
       case CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION:
         this.resetOciValues();
         this.resetGitRepoValues();
         this.resetHelmValues();
         this.value.spec['url'] = 'oci://dp.apps.rancher.io/charts';
+        this.resetNameAndDescription(CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION);
         break;
       }
       this.resetClientSecret();
@@ -167,6 +174,18 @@ export default {
     },
     resetClientSecret() {
       this.value.spec['clientSecret'] = null;
+    },
+    resetNameAndDescription(target) {
+      if (target === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION) {
+        this.previousName = this.value.metadata.name || '';
+        this.previousDescription = this.value.metadata.annotations?.['field.cattle.io/description'] || '';
+        this.value.metadata['name'] = CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION;
+        this.value.metadata.annotations['field.cattle.io/description'] = this.t('catalog.repo.target.suseAppCollection');
+
+        return;
+      }
+      this.value.metadata['name'] = this.previousName;
+      this.value.metadata.annotations['field.cattle.io/description'] = this.previousDescription;
     }
   },
 };
@@ -174,13 +193,6 @@ export default {
 
 <template>
   <form>
-    <NameNsDescription
-      :value="value"
-      :mode="mode"
-      :namespaced="isNamespaced"
-      @update:value="$emit('input', $event)"
-    />
-
     <h2>{{ t('catalog.repo.target.label') }}</h2>
     <div class="row mb-10">
       <div class="col span-12">
@@ -194,6 +206,14 @@ export default {
       </div>
     </div>
 
+    <NameNsDescription
+      :key="clusterRepoType"
+      :value="value"
+      :mode="mode"
+      :namespaced="isNamespaced"
+      @update:value="$emit('input', $event)"
+    />
+
     <template v-if="clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL">
       <Banner
         label-key="catalog.repo.oci.warning"
@@ -205,196 +225,188 @@ export default {
       />
     </template>
 
-    <div v-if="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION && !getVersionData()?.RancherPrime || !(clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION)">
-      <div class="row mb-10">
-        <template v-if="clusterRepoType === CLUSTER_REPO_TYPES.GIT_REPO">
-          <div class="col span-6">
-            <LabeledInput
-              v-model:value.trim="value.spec.gitRepo"
-              :required="true"
-              :label="t('catalog.repo.gitRepo.label')"
-              :placeholder="t('catalog.repo.gitRepo.placeholder', null, true)"
-              :mode="mode"
-              data-testid="clusterrepo-git-repo-input"
-            />
-          </div>
-          <div class="col span-3">
-            <LabeledInput
-              v-model:value.trim="value.spec.gitBranch"
-              :sub-label="!value.spec.gitBranch ? t('catalog.repo.gitBranch.defaultMessage', null, true) : undefined"
-              :label="t('catalog.repo.gitBranch.label')"
-              :placeholder="t('catalog.repo.gitBranch.placeholder', null, true)"
-              :mode="mode"
-              data-testid="clusterrepo-git-branch-input"
-            />
-          </div>
-        </template>
+    <div class="row mb-10">
+      <template v-if="clusterRepoType === CLUSTER_REPO_TYPES.GIT_REPO">
+        <div class="col span-6">
+          <LabeledInput
+            v-model:value.trim="value.spec.gitRepo"
+            :required="true"
+            :label="t('catalog.repo.gitRepo.label')"
+            :placeholder="t('catalog.repo.gitRepo.placeholder', null, true)"
+            :mode="mode"
+            data-testid="clusterrepo-git-repo-input"
+          />
+        </div>
+        <div class="col span-3">
+          <LabeledInput
+            v-model:value.trim="value.spec.gitBranch"
+            :sub-label="!value.spec.gitBranch ? t('catalog.repo.gitBranch.defaultMessage', null, true) : undefined"
+            :label="t('catalog.repo.gitBranch.label')"
+            :placeholder="t('catalog.repo.gitBranch.placeholder', null, true)"
+            :mode="mode"
+            data-testid="clusterrepo-git-branch-input"
+          />
+        </div>
+      </template>
 
-        <template v-else-if="clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL">
-          <div class="col span-6">
-            <LabeledInput
-              v-model:value.trim="value.spec.url"
-              :required="true"
-              :label="t('catalog.repo.oci.urlLabel')"
-              :placeholder="t('catalog.repo.oci.placeholder', null, true)"
-              :mode="mode"
-              data-testid="clusterrepo-oci-url-input"
-            />
-          </div>
-        </template>
-
-        <template v-else-if="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION">
-          <div class="col span-6">
-            <LabeledInput
-              v-model:value.trim="value.spec.url"
-              :required="true"
-              :label="t('catalog.repo.oci.urlLabel')"
-              :placeholder="t('catalog.repo.oci.placeholder', null, true)"
-              :mode="mode"
-              data-testid="clusterrepo-oci-url-input"
-              :disabled="true"
-            />
-          </div>
-        </template>
-
-        <div
-          v-else
-          class="col span-6"
-        >
+      <template v-else-if="clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL">
+        <div class="col span-6">
           <LabeledInput
             v-model:value.trim="value.spec.url"
             :required="true"
-            :label="t('catalog.repo.url.label')"
-            :placeholder="t('catalog.repo.url.placeholder', null, true)"
+            :label="t('catalog.repo.oci.urlLabel')"
+            :placeholder="t('catalog.repo.oci.placeholder', null, true)"
             :mode="mode"
-            data-testid="clusterrepo-helm-url-input"
+            data-testid="clusterrepo-oci-url-input"
           />
         </div>
+      </template>
 
+      <template v-else-if="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION">
+        <div class="col span-6">
+          <LabeledInput
+            v-model:value.trim="value.spec.url"
+            :required="true"
+            :label="t('catalog.repo.oci.urlLabel')"
+            :placeholder="t('catalog.repo.oci.placeholder', null, true)"
+            :mode="mode"
+            data-testid="clusterrepo-oci-url-input"
+            :disabled="true"
+          />
+        </div>
+      </template>
+
+      <div
+        v-else
+        class="col span-6"
+      >
+        <LabeledInput
+          v-model:value.trim="value.spec.url"
+          :required="true"
+          :label="t('catalog.repo.url.label')"
+          :placeholder="t('catalog.repo.url.placeholder', null, true)"
+          :mode="mode"
+          data-testid="clusterrepo-helm-url-input"
+        />
+      </div>
+
+      <div
+        class="col span-3"
+        data-testid="clusterrepo-refresh-interval"
+      >
+        <UnitInput
+          v-model:value.trim="value.spec.refreshInterval"
+          :label="t('catalog.repo.refreshInterval.label')"
+          :mode="mode"
+          min="0"
+          :suffix="t('unit.hour', { count: value.spec.refreshInterval })"
+          :placeholder="t('catalog.repo.refreshInterval.placeholder', { hours: clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL ? 24 : 6 })"
+          @update:value="updateRefreshInterval($event)"
+        />
+      </div>
+    </div>
+
+    <SelectOrCreateAuthSecret
+      v-model:value="value.spec.clientSecret"
+      :mode="mode"
+      data-testid="clusterrepo-auth-secret"
+      :register-before-hook="registerBeforeHook"
+      :namespace="secretNamespace"
+      :limit-to-namespace="false"
+      :in-store="inStore"
+      :allow-ssh="clusterRepoType !== CLUSTER_REPO_TYPES.OCI_URL"
+      :generate-name="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION ? 'clusterrepo-appco-auth-' : 'clusterrepo-auth-'"
+      :cache-secrets="true"
+      :fixed-http-basic-auth="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION"
+    />
+
+    <div v-if="clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL">
+      <div class="row">
+        <div class="col span-6">
+          <LabeledInput
+            v-model:value="value.spec.caBundle"
+            class="mt-20"
+            type="multiline"
+            label="CA Cert Bundle"
+            :mode="mode"
+            data-testid="clusterrepo-oci-cabundle-input"
+          />
+          <Checkbox
+            v-model:value="value.spec.insecureSkipTLSVerify"
+            class="mt-10"
+            :mode="mode"
+            :label="t('catalog.repo.oci.skipTlsVerifications')"
+            data-testid="clusterrepo-oci-skip-tls-checkbox"
+          />
+          <Checkbox
+            v-model:value="value.spec.insecurePlainHttp"
+            class="mt-10"
+            :mode="mode"
+            :label="t('catalog.repo.oci.insecurePlainHttp')"
+            data-testid="clusterrepo-oci-insecure-plain-http"
+          />
+        </div>
+      </div>
+      <h4 class="mb-10 mt-20">
+        {{ t('catalog.repo.oci.exponentialBackOff.label') }}
+      </h4>
+      <div class="row mb-40 mt-10">
         <div
-          class="col span-3"
-          data-testid="clusterrepo-refresh-interval"
+          class="col span-4"
+          data-testid="clusterrepo-oci-min-wait-input"
         >
           <UnitInput
-            v-model:value.trim="value.spec.refreshInterval"
-            :label="t('catalog.repo.refreshInterval.label')"
+            v-model:value.trim="ociMinWait"
+            :label="t('catalog.repo.oci.exponentialBackOff.minWait.label')"
+            :placeholder="t('catalog.repo.oci.exponentialBackOff.minWait.placeholder')"
             :mode="mode"
+            min="1"
+            :suffix="t('suffix.seconds', { count: ociMinWait })"
+            @update:value="updateExponentialBackOffValues('minWait', $event)"
+          />
+        </div>
+        <div
+          class="col span-4"
+          data-testid="clusterrepo-oci-max-wait-input"
+        >
+          <UnitInput
+            v-model:value.trim="ociMaxWait"
+            :label="t('catalog.repo.oci.exponentialBackOff.maxWait.label')"
+            :placeholder="t('catalog.repo.oci.exponentialBackOff.maxWait.placeholder')"
+            :mode="mode"
+            min="1"
+            :suffix="t('suffix.seconds', { count: ociMaxWait })"
+            @update:value="updateExponentialBackOffValues('maxWait', $event)"
+          />
+        </div>
+        <div class="col span-4">
+          <LabeledInput
+            v-model:value.trim="ociMaxRetries"
+            :label="t('catalog.repo.oci.exponentialBackOff.maxRetries.label')"
+            :placeholder="t('catalog.repo.oci.exponentialBackOff.maxRetries.placeholder')"
+            :mode="mode"
+            type="number"
             min="0"
-            :suffix="t('unit.hour', { count: value.spec.refreshInterval })"
-            :placeholder="t('catalog.repo.refreshInterval.placeholder', { hours: clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL ? 24 : 6 })"
-            @update:value="updateRefreshInterval($event)"
+            data-testid="clusterrepo-oci-max-retries-input"
+            @update:value="updateExponentialBackOffValues('maxRetries', $event)"
           />
         </div>
       </div>
-
-      <SelectOrCreateAuthSecret
-        v-model:value="value.spec.clientSecret"
-        :mode="mode"
-        data-testid="clusterrepo-auth-secret"
-        :register-before-hook="registerBeforeHook"
-        :namespace="secretNamespace"
-        :limit-to-namespace="false"
-        :in-store="inStore"
-        :allow-ssh="clusterRepoType !== CLUSTER_REPO_TYPES.OCI_URL"
-        :generate-name="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION ? 'clusterrepo-appco-auth-' : 'clusterrepo-auth-'"
-        :cache-secrets="true"
-        :fixed-http-basic-auth="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION"
-      />
-
-      <div v-if="clusterRepoType === CLUSTER_REPO_TYPES.OCI_URL">
-        <div class="row">
-          <div class="col span-6">
-            <LabeledInput
-              v-model:value="value.spec.caBundle"
-              class="mt-20"
-              type="multiline"
-              label="CA Cert Bundle"
-              :mode="mode"
-              data-testid="clusterrepo-oci-cabundle-input"
-            />
-            <Checkbox
-              v-model:value="value.spec.insecureSkipTLSVerify"
-              class="mt-10"
-              :mode="mode"
-              :label="t('catalog.repo.oci.skipTlsVerifications')"
-              data-testid="clusterrepo-oci-skip-tls-checkbox"
-            />
-            <Checkbox
-              v-model:value="value.spec.insecurePlainHttp"
-              class="mt-10"
-              :mode="mode"
-              :label="t('catalog.repo.oci.insecurePlainHttp')"
-              data-testid="clusterrepo-oci-insecure-plain-http"
-            />
-          </div>
-        </div>
-        <h4 class="mb-10 mt-20">
-          {{ t('catalog.repo.oci.exponentialBackOff.label') }}
-        </h4>
-        <div class="row mb-40 mt-10">
-          <div
-            class="col span-4"
-            data-testid="clusterrepo-oci-min-wait-input"
-          >
-            <UnitInput
-              v-model:value.trim="ociMinWait"
-              :label="t('catalog.repo.oci.exponentialBackOff.minWait.label')"
-              :placeholder="t('catalog.repo.oci.exponentialBackOff.minWait.placeholder')"
-              :mode="mode"
-              min="1"
-              :suffix="t('suffix.seconds', { count: ociMinWait })"
-              @update:value="updateExponentialBackOffValues('minWait', $event)"
-            />
-          </div>
-          <div
-            class="col span-4"
-            data-testid="clusterrepo-oci-max-wait-input"
-          >
-            <UnitInput
-              v-model:value.trim="ociMaxWait"
-              :label="t('catalog.repo.oci.exponentialBackOff.maxWait.label')"
-              :placeholder="t('catalog.repo.oci.exponentialBackOff.maxWait.placeholder')"
-              :mode="mode"
-              min="1"
-              :suffix="t('suffix.seconds', { count: ociMaxWait })"
-              @update:value="updateExponentialBackOffValues('maxWait', $event)"
-            />
-          </div>
-          <div class="col span-4">
-            <LabeledInput
-              v-model:value.trim="ociMaxRetries"
-              :label="t('catalog.repo.oci.exponentialBackOff.maxRetries.label')"
-              :placeholder="t('catalog.repo.oci.exponentialBackOff.maxRetries.placeholder')"
-              :mode="mode"
-              type="number"
-              min="0"
-              data-testid="clusterrepo-oci-max-retries-input"
-              @update:value="updateExponentialBackOffValues('maxRetries', $event)"
-            />
-          </div>
-        </div>
-      </div>
-
-      <Labels
-        default-section-class="mt-20"
-        :value="value"
-        :mode="mode"
-        :display-side-by-side="false"
-      />
-
-      <Footer
-        data-testid="clusterrepo-footer"
-        :mode="mode"
-        :errors="errors"
-        @save="save"
-        @done="done"
-      />
     </div>
-    <div v-else>
-      <Banner
-        label="To use SUSE Application Collection, you need to be using Rancher Prime!"
-        color="info"
-      />
-    </div>
+
+    <Labels
+      default-section-class="mt-20"
+      :value="value"
+      :mode="mode"
+      :display-side-by-side="false"
+    />
+
+    <Footer
+      data-testid="clusterrepo-footer"
+      :mode="mode"
+      :errors="errors"
+      @save="save"
+      @done="done"
+    />
   </form>
 </template>

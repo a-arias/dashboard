@@ -106,6 +106,14 @@ export default class CatalogApp extends SteveModel {
     return this.spec?.chart?.metadata?.version;
   }
 
+  /**
+   * Get if it is an installation from SUSE App Collection
+   * Specific installation done on the UI
+   **/
+  get isSuseAppCollection() {
+    return !!this.spec?.chart?.metadata?.annotations?.[CATALOG_ANNOTATIONS.SUSE_APP_COLLECTION];
+  }
+
   get upgradeAvailable() {
     // one of the following statuses gets returned:
     // NOT_APPLICABLE - managed by fleet

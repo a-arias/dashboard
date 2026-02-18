@@ -143,14 +143,22 @@ export default class ClusterRepo extends SteveModel {
     return this.metadata?.state?.name === 'active';
   }
 
+  get isSuseAppCollection() {
+    return this.metadata?.annotations?.[CATALOG.SUSE_APP_COLLECTION];
+  }
+
   get typeDisplay() {
+    if (this.isSuseAppCollection) {
+      return 'SUSE AppCo';
+    }
     if ( this.spec.gitRepo ) {
       return 'git';
-    } else if ( this.spec.url ) {
-      return this.isOciType ? 'oci' : 'http';
-    } else {
-      return '?';
     }
+    if ( this.spec.url ) {
+      return this.isOciType ? 'oci' : 'http';
+    }
+
+    return '?';
   }
 
   get nameDisplay() {
@@ -227,7 +235,7 @@ export default class ClusterRepo extends SteveModel {
       if (!this.metadata.annotations) {
         this.metadata.annotations = {};
       }
-      this.metadata.annotations['catalog.cattle.io/ui-pull-secret-value'] = '[]global.imagePullSecrets';
+      this.metadata.annotations[CATALOG.SUSE_APP_COLLECTION] = 'true';
     }
 
     // Call the parent save method
