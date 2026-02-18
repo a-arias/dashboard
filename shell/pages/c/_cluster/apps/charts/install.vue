@@ -381,11 +381,12 @@ export default {
         try {
           defaultSelectedSecret = (await this.$store.dispatch('cluster/find', { type: SECRET, id: `cattle-system/${ this.repo.spec.clientSecret.name }` }));
         } catch (e) {
-          // If the secret doesn't exist, that's fine, we'll just create a new one later
+          // If the secret doesn't exist, technically should be an impossible case
         }
       }
 
       this.selectedSecret = defaultSelectedSecret;
+      this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret`;
 
       let defaultImagePullSecret = this.$store.getters['cluster/byId'](SECRET, `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret`);
 
@@ -401,7 +402,6 @@ export default {
         this.selectedImagePullSecret = defaultImagePullSecret;
       } else {
         this.selectedImagePullSecret = 'CREATE_NEW_IMAGE_PULL_SECRET';
-        this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret`;
         this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
       }
     }
