@@ -6,6 +6,8 @@ import LazyImage from '@shell/components/LazyImage.vue';
 import { DropdownOption } from '@components/RcDropdown/types';
 import ActionMenu from '@shell/components/ActionMenuShell.vue';
 import RcItemCardAction from './RcItemCardAction';
+import RcIcon from '@components/RcIcon/RcIcon.vue';
+import { RcIconType } from '@components/RcIcon/types';
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -25,9 +27,11 @@ type Label = {
 
 /**
  * Represents an image used in the card.
+ * Can be either a traditional image (src) or an icon (icon).
  */
 type Image = {
-  src: string;
+  src?: string;
+  icon?: RcIconType;
   alt?: Label;
 };
 
@@ -113,6 +117,9 @@ interface RcItemCardProps {
   /** Makes the card clickable and emits 'card-click' on click/enter/space */
   clickable?: boolean;
 
+  /** The card will have same style as hover clickable with the blue border when selected */
+  selected?: boolean;
+
   role?: 'link' | 'button' | undefined;
 }
 
@@ -177,7 +184,7 @@ const cursorValue = computed(() => props.clickable ? 'pointer' : 'auto');
     :data-testid="`item-card-${id}`"
     :class="{
       'clickable':
-        clickable
+        clickable,'selected': selected
     }"
     @click="_handleCardClick"
   >
@@ -190,11 +197,19 @@ const cursorValue = computed(() => props.clickable ? 'pointer' : 'auto');
               :class="['item-card-image', variant]"
               data-testid="item-card-image"
             >
-              <LazyImage
-                :src="image.src"
-                :alt="imageAlt"
-                :style="{'width': '40px', 'height': '40px', 'object-fit': 'contain'}"
-              />
+              <template v-if="image.icon">
+                <RcIcon
+                  :type="image.icon"
+                  size="xxlarge"
+                />
+              </template>
+              <template v-else-if="image.src">
+                <LazyImage
+                  :src="image.src"
+                  :alt="imageAlt"
+                  :style="{'width': '40px', 'height': '40px', 'object-fit': 'contain'}"
+                />
+              </template>
             </div>
           </slot>
           <slot name="item-card-pill">
@@ -229,11 +244,19 @@ const cursorValue = computed(() => props.clickable ? 'pointer' : 'auto');
                   :class="['item-card-image', variant]"
                   data-testid="item-card-image"
                 >
-                  <LazyImage
-                    :src="image.src"
-                    :alt="imageAlt"
-                    :style="{'width': '24px', 'height': '24px', 'object-fit': 'contain'}"
-                  />
+                  <template v-if="image.icon">
+                    <RcIcon
+                      :type="image.icon"
+                      size="xlarge"
+                    />
+                  </template>
+                  <template v-else-if="image.src">
+                    <LazyImage
+                      :src="image.src"
+                      :alt="imageAlt"
+                      :style="{'width': '32px', 'height': '32px', 'object-fit': 'contain'}"
+                    />
+                  </template>
                 </div>
               </slot>
             </template>
@@ -324,7 +347,8 @@ $image-medium-box-width: 48px;
   background: var(--body-bg);
   cursor: v-bind(cursorValue);
 
-  &.clickable:hover {
+  &.clickable:hover,
+  &.selected {
     border-color: var(--primary);
   }
 
