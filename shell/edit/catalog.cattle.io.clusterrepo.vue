@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import CreateEditView from '@shell/mixins/create-edit-view';
 import Footer from '@shell/components/form/Footer';
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -11,8 +11,9 @@ import { MANAGEMENT, NAMESPACE, CLUSTER_REPO_TYPES } from '@shell/config/types';
 import { CATALOG } from '@shell/config/labels-annotations';
 import UnitInput from '@shell/components/form/UnitInput.vue';
 import { getVersionData } from '@shell/config/version';
-import ToggleGroup from '@shell/components/Toggle/toggle-group.vue';
-import { _CREATE } from '@shell/config/query-params';
+import { RcItemCard } from '@components/RcItemCard';
+import { _CREATE, _EDIT } from '@shell/config/query-params';
+import { RcIconType } from '@components/RcIcon/types';
 
 export default {
   name: 'CruCatalogRepo',
@@ -28,7 +29,7 @@ export default {
     Banner,
     Checkbox,
     UnitInput,
-    ToggleGroup,
+    RcItemCard,
   },
 
   mixins: [CreateEditView],
@@ -44,28 +45,30 @@ export default {
       clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? this.value.metadata.annotations[CATALOG.SUSE_APP_COLLECTION] ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
     }
 
-    const activeChatbotOptions = [
+    const clusterRepoTargets = [
       {
-        name:        'Helm Repository',
-        description: this.t('catalog.repo.target.http', {}, true),
-        icon:        'icon-ollama',
-        value:       CLUSTER_REPO_TYPES.HELM_URL,
+        id:      CLUSTER_REPO_TYPES.HELM_URL,
+        header:  { title: { key: 'catalog.repo.target.http.title' } },
+        image:   { icon: 'helm' as RcIconType, alt: { key: 'catalog.repo.target.http.title' } },
+        content: { key: 'catalog.repo.target.http.description' },
       },
       {
-        name:        'Git Repository',
-        description: this.t('catalog.repo.target.git', {}, true),
-        icon:        'icon-openai',
-        value:       CLUSTER_REPO_TYPES.GIT_REPO
+        id:      CLUSTER_REPO_TYPES.GIT_REPO,
+        header:  { title: { key: 'catalog.repo.target.git.title' } },
+        image:   { icon: 'git' as RcIconType, alt: { key: 'catalog.repo.target.git.title' } },
+        content: { key: 'catalog.repo.target.git.description' },
       },
       {
-        name:  this.t('catalog.repo.target.oci', null, true),
-        icon:  'icon-gemini',
-        value: CLUSTER_REPO_TYPES.OCI_URL,
+        id:      CLUSTER_REPO_TYPES.OCI_URL,
+        header:  { title: { key: 'catalog.repo.target.oci.title' } },
+        image:   { src: require('@shell/assets/images/providers/oci.svg'), alt: { key: 'catalog.repo.target.oci.title' } },
+        content: { key: 'catalog.repo.target.oci.description' },
       },
       {
-        name:  this.t('catalog.repo.target.suseAppCollection', {}, true),
-        icon:  'icon-aws-bedrock',
-        value: CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION,
+        id:      CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION,
+        header:  { title: { key: 'catalog.repo.target.suseAppCollection.title' } },
+        image:   { src: require('@shell/assets/images/content/suse.svg'), alt: { key: 'catalog.repo.target.suseAppCollection.title' } },
+        content: { key: 'catalog.repo.target.suseAppCollection.description' },
       },
     ];
 
@@ -76,7 +79,7 @@ export default {
       ociMaxWait:          this.value.spec.exponentialBackOffValues?.maxWait,
       ociMaxRetries:       this.value.spec.exponentialBackOffValues?.maxRetries,
       getVersionData,
-      activeChatbotOptions,
+      clusterRepoTargets,
       previousName:        '',
       previousDescription: '',
     };
@@ -102,30 +105,33 @@ export default {
   methods: {
     onTargetChange(clusterRepoType) {
       // reset input fields when switching options
+      const oldClusterRepoType = this.clusterRepoType;
+
+      this.clusterRepoType = clusterRepoType;
       switch (clusterRepoType) {
       case CLUSTER_REPO_TYPES.GIT_REPO:
         this.resetOciValues();
         this.resetHelmValues();
-        this.resetNameAndDescription();
+        this.resetNameAndDescription(oldClusterRepoType, this.clusterRepoType);
         break;
       case CLUSTER_REPO_TYPES.OCI_URL:
         // set insecurePlainHttp to false as a secondary flag, alongside checking for 'oci://' in the URL, to determine OCI type later
         this.value.spec['insecurePlainHttp'] = false;
         this.resetGitRepoValues();
         this.resetHelmValues();
-        this.resetNameAndDescription();
+        this.resetNameAndDescription(oldClusterRepoType, this.clusterRepoType);
         break;
       case CLUSTER_REPO_TYPES.HELM_URL:
         this.resetOciValues();
         this.resetGitRepoValues();
-        this.resetNameAndDescription();
+        this.resetNameAndDescription(oldClusterRepoType, this.clusterRepoType);
         break;
       case CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION:
         this.resetOciValues();
         this.resetGitRepoValues();
         this.resetHelmValues();
         this.value.spec['url'] = 'oci://dp.apps.rancher.io/charts';
-        this.resetNameAndDescription(CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION);
+        this.resetNameAndDescription(oldClusterRepoType, this.clusterRepoType);
         break;
       }
       this.resetClientSecret();
@@ -175,17 +181,20 @@ export default {
     resetClientSecret() {
       this.value.spec['clientSecret'] = null;
     },
-    resetNameAndDescription(target) {
-      if (target === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION) {
+    resetNameAndDescription(old, neu) {
+      if (this.mode === _EDIT) {
+        return;
+      }
+
+      if (neu === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION) {
         this.previousName = this.value.metadata.name || '';
         this.previousDescription = this.value.metadata.annotations?.['field.cattle.io/description'] || '';
         this.value.metadata['name'] = CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION;
-        this.value.metadata.annotations['field.cattle.io/description'] = this.t('catalog.repo.target.suseAppCollection');
-
-        return;
+        this.value.metadata.annotations['field.cattle.io/description'] = this.t('catalog.repo.target.suseAppCollection.description');
+      } else if (old === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION) {
+        this.value.metadata['name'] = this.previousName;
+        this.value.metadata.annotations['field.cattle.io/description'] = this.previousDescription;
       }
-      this.value.metadata['name'] = this.previousName;
-      this.value.metadata.annotations['field.cattle.io/description'] = this.previousDescription;
     }
   },
 };
@@ -195,13 +204,19 @@ export default {
   <form>
     <h2>{{ t('catalog.repo.target.label') }}</h2>
     <div class="row mb-10">
-      <div class="col span-12">
-        <ToggleGroup
-          v-model="clusterRepoType"
-          :items="activeChatbotOptions"
-          :disabled="false"
+      <div class="col span-12 target-groups">
+        <RcItemCard
+          v-for="card in clusterRepoTargets"
+          :id="card.id"
+          :key="card.id"
+          :header="card.header"
+          :image="card.image"
+          :content="card.content"
+          :selected="clusterRepoType === card.id"
+          :clickable="true"
           data-testid="clusterrepo-radio-input"
-          @update:model-value="onTargetChange"
+          variant="small"
+          @card-click="onTargetChange(card.id)"
         />
       </div>
     </div>
@@ -410,3 +425,15 @@ export default {
     />
   </form>
 </template>
+
+<style lang="css" scoped>
+.target-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-gap: var(--gap-md);
+  width: 100%;
+  height: max-content;
+  overflow: hidden;
+
+}
+</style>

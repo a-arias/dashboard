@@ -592,7 +592,7 @@ export default {
       :label="err"
     />
     <Banner
-      v-if="suseAppCollectionRepo && getVersionData()?.RancherPrime"
+      v-if="suseAppCollectionRepo && !getVersionData()?.RancherPrime"
       :key="i"
       color="info"
       closable
