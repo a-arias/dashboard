@@ -7,7 +7,7 @@ import Labels from '@shell/components/form/Labels';
 import SelectOrCreateAuthSecret from '@shell/components/form/SelectOrCreateAuthSecret';
 import Banner from '@components/Banner/Banner.vue';
 import { Checkbox } from '@components/Form/Checkbox';
-import { MANAGEMENT, NAMESPACE, CLUSTER_REPO_TYPES } from '@shell/config/types';
+import { MANAGEMENT, NAMESPACE, CLUSTER_REPO_TYPES, AUTH_TYPE } from '@shell/config/types';
 import { CATALOG } from '@shell/config/labels-annotations';
 import UnitInput from '@shell/components/form/UnitInput.vue';
 import { getVersionData } from '@shell/config/version';
@@ -74,6 +74,7 @@ export default {
 
     return {
       CLUSTER_REPO_TYPES,
+      AUTH_TYPE,
       clusterRepoType,
       ociMinWait:          this.value.spec.exponentialBackOffValues?.minWait,
       ociMaxWait:          this.value.spec.exponentialBackOffValues?.maxWait,
@@ -184,6 +185,10 @@ export default {
     resetNameAndDescription(old, neu) {
       if (this.mode === _EDIT) {
         return;
+      }
+
+      if (!this.value?.metadata?.annotations) {
+        this.value.metadata.annotations = {};
       }
 
       if (neu === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION) {
@@ -330,6 +335,8 @@ export default {
       :limit-to-namespace="false"
       :in-store="inStore"
       :allow-ssh="clusterRepoType !== CLUSTER_REPO_TYPES.OCI_URL"
+      :pre-select="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION ? { selected: AUTH_TYPE._BASIC } : null"
+      :allow-none="clusterRepoType !== CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION"
       :generate-name="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION ? 'clusterrepo-appco-auth-' : 'clusterrepo-auth-'"
       :cache-secrets="true"
       :fixed-http-basic-auth="clusterRepoType === CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION"

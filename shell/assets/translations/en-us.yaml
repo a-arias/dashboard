@@ -1334,9 +1334,10 @@ catalog:
           }. Start by setting some basic information used by {vendor} to manage the App.
         nsCreationDescription: "To install the app into a new namespace enter it's name in the Namespace field and select it."
         createNamespace: "Namespace <code>{namespace}</code> will be created."
-        selectedRepoAuth: "This Chart requires an Image Pull Secret in order for images to be succesfully pulled.<br> The authentication that will be used is based on: <b>{ repoAuthenticationName }</b>.<br><br>"
+        requiresImagePullSecret: "This Chart requires an Image Pull Secret in order for images to be succesfully pulled."
+        selectedRepoAuth: "The authentication that will be used is based on: <b>{ repoAuthenticationName }</b>.<br>"
         generatedImagePullSecretBanner: "A new Image Pull Secret will be generated with the name: <b>{ imagePullSecretName }</b>."
-        usePreviouslygeneratedImagePullSecretBanner: "Image Pull Secret <b>{ imagePullSecretName }</b> was already created previously and will be used."
+        usePreviouslyGeneratedImagePullSecretBanner: "Image Pull Secret <b>{ imagePullSecretName }</b> was already created previously and will be used."
         createAnImagePullSecret: Create new Image Pull Secret based on selected Authentication
         imagePullSecret: Image Pull Secret
         suseAppCoAuthentication: SUSE Application Collection Authentication
@@ -6254,6 +6255,7 @@ secret:
 
 selectOrCreateAuthSecret:
   label: Authentication
+  imagePullSecret: Image Pull Secret
   options:
     none: None
     basic: HTTP Basic Auth
@@ -6278,6 +6280,8 @@ selectOrCreateAuthSecret:
   createBasic: Create an HTTP Basic Auth Secret
   createS3: Create an S3-Compatible Auth Secret
   createRKE: Create an RKE Auth Config Secret
+  createImagePullSecretBasedOnAuth: Create an Image Pull Secret based on Authentication Secret
+  createImagePullSecret: Create a new Image Pull Secret with new Username/Password
 
 serviceAccount:
   automount: Automount Service Account Token
