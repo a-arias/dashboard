@@ -1335,7 +1335,7 @@ catalog:
         nsCreationDescription: "To install the app into a new namespace enter it's name in the Namespace field and select it."
         createNamespace: "Namespace <code>{namespace}</code> will be created."
         requiresImagePullSecret: "This Chart requires an Image Pull Secret in order for images to be succesfully pulled."
-        dontUseDefaultImagePullSecret: "Manually select an Image Pull Secret or create a new one using Repository Authentication"
+        dontUseDefaultImagePullSecret: "Manually select an Image Pull Secret or create a new one with Username/Password"
         selectedRepoAuth: "The authentication that will be used is based on: <b>{ repoAuthenticationName }</b>.<br>"
         generatedImagePullSecretBanner: "A new Image Pull Secret will be generated with the name: <b>{ imagePullSecretName }</b>."
         usePreviouslyGeneratedImagePullSecretBanner: "Image Pull Secret <b>{ imagePullSecretName }</b> was already created previously and will be used."

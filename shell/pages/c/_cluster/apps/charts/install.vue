@@ -441,9 +441,11 @@ export default {
       appCoImagePullSecretView:               [],
       generatedNameForImagePullSecret:        null,
       defaultGeneratedNameForImagePullSecret: null,
+      defaultImagePullSecret:                 null,
       clientSecret:                           null,
       showCreateAuthSecret:                   false,
       dontUseDefaultOption:                   false,
+      disabledCheckbox:                       false,
       AUTH_TYPE,
       stepBasic:                              {
         name:           'basics',
@@ -500,18 +502,6 @@ export default {
 
     hasDecodedDataAvailable() {
       return this.selectedSecret?.decodedData;
-    },
-
-    canUseDefaultOption() {
-      // Can use default option if:
-      // 1. Has decoded data to create new secret from auth, OR
-      // 2. Default image pull secret already exists to reuse
-      return this.hasDecodedDataAvailable || !!this.defaultImagePullSecret;
-    },
-
-    shouldDisableDontUseDefaultCheckbox() {
-      // Disable checkbox if can't use default option and there's no default secret to use
-      return !this.hasDecodedDataAvailable && !this.defaultImagePullSecret;
     },
 
     namespaceIsNew() {
@@ -796,6 +786,13 @@ export default {
       return global.systemDefaultRegistry !== undefined || global.cattle?.systemDefaultRegistry !== undefined;
     },
 
+    setImagePullSecretDataTrigger() {
+      return `
+        ${ this.defaultImagePullSecret?.name }
+        ${ this.dontUseDefaultOption }
+         ${ this.selectedImagePullSecret }`;
+    }
+
   },
 
   watch: {
@@ -817,19 +814,44 @@ export default {
         if (project) {
           this.project = project.replace(':', '/');
         }
+      }
+    },
+    async targetNamespace(neu) {
+      try {
+        this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
+      } catch (e) {
+        // If the secret doesn't exist, that's fine, we'll just create a new one later
+        this.defaultImagePullSecret = null;
+      }
 
-        // Reset to default, but setImagePullSecretData will adjust if needed
+      // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
+      // Disable the checkbox
+      const previousDontUseDefaultOption = this.dontUseDefaultOption;
+
+      if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
+        this.dontUseDefaultOption = true;
+        this.disabledCheckbox = true;
+      } else {
+        this.disabledCheckbox = false;
         this.dontUseDefaultOption = false;
-        await this.setImagePullSecretData();
+      }
+
+      // Setting default values if changing to avoid duplicated trigger
+      if (this.dontUseDefaultOption !== previousDontUseDefaultOption) {
+        if (this.defaultImagePullSecret) {
+          // If the default option is used and the default secret already exists, use it
+          this.selectedImagePullSecret = this.defaultImagePullSecret.name;
+          this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
+        } else if (!this.defaultImagePullSecret) {
+          // Create new option with default generated name if the default option is selected
+          this.selectedImagePullSecret = null;
+          this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
+        }
       }
     },
 
-    async dontUseDefaultOption() {
-      this.setImagePullSecretData();
-    },
-
-    async selectedImagePullSecret() {
-      this.setImagePullSecretData();
+    async setImagePullSecretDataTrigger() {
+      await this.setImagePullSecretData();
     },
 
     preFormYamlOption(neu, old) {
@@ -981,32 +1003,12 @@ export default {
 
     async setImagePullSecretData() {
       if (this.selectedSecret) {
-        let defaultImagePullSecret = this.$store.getters['cluster/byId'](SECRET, `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret`);
-
-        if (!defaultImagePullSecret) {
-          try {
-            defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
-          } catch (e) {
-            // If the secret doesn't exist, that's fine, we'll just create a new one later
-          }
-        }
-
-        if (defaultImagePullSecret) {
-          this.defaultImagePullSecret = defaultImagePullSecret;
-        }
-
-        // If no decoded data and no default secret exists, must use non-default option
-        if (!this.hasDecodedDataAvailable && !defaultImagePullSecret) {
-          this.dontUseDefaultOption = true;
-        }
-
-        if (!this.dontUseDefaultOption && defaultImagePullSecret) {
+        if (!this.dontUseDefaultOption && this.defaultImagePullSecret) {
           // If the default option is used and the default secret already exists, use it
-          this.selectedImagePullSecret = defaultImagePullSecret.name;
+          this.selectedImagePullSecret = this.defaultImagePullSecret.name;
           this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
-        } else if (!this.dontUseDefaultOption && !defaultImagePullSecret && this.hasDecodedDataAvailable) {
+        } else if (!this.dontUseDefaultOption && !this.defaultImagePullSecret) {
           // Create new option with default generated name if the default option is selected
-          // and we have decoded data to create it from
           this.selectedImagePullSecret = null;
           this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
         } else if (this.dontUseDefaultOption) {
@@ -1476,7 +1478,6 @@ export default {
       let imagePullSecretName = '';
 
       // If wants to use the default one, it will create the Image Pull Secret
-      // Only create if we have decodedData and no existing secret
       if (!this.dontUseDefaultOption && !this.selectedImagePullSecret && this.hasDecodedDataAvailable) {
         // Create the secret for app collections
         const secret = await this.$store.dispatch('cluster/create', {
@@ -1666,11 +1667,10 @@ export default {
               class="mt-10"
               label-key="catalog.install.steps.basics.requiresImagePullSecret"
             />
-
             <Checkbox
               v-model:value="dontUseDefaultOption"
               label-key="catalog.install.steps.basics.dontUseDefaultImagePullSecret"
-              :disabled="shouldDisableDontUseDefaultCheckbox"
+              :disabled="disabledCheckbox"
             />
 
             <div v-if="dontUseDefaultOption">

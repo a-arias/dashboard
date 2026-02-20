@@ -70,7 +70,9 @@ describe('page: Install', () => {
             targetName:      'wrong-name',
             versions:        []
           },
-          query: { versionName: '1.0.0' }
+          query:       { versionName: '1.0.0' },
+          chartValues: { global: { imagePullSecrets: [] } },
+          repo:        { spec: { clientSecret: { name: 'test-secret' } } }
         };
       }
     });
