@@ -35,15 +35,8 @@ export default {
   mixins: [CreateEditView],
 
   data() {
-    // Check for target query parameter (only on create mode)
-    const targetFromQuery = this.mode === _CREATE ? this.$route.query.target : null;
-    let clusterRepoType;
-
-    if (targetFromQuery && Object.values(CLUSTER_REPO_TYPES).includes(targetFromQuery)) {
-      clusterRepoType = targetFromQuery;
-    } else {
-      clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? this.value.metadata.annotations[CATALOG.SUSE_APP_COLLECTION] ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
-    }
+    // Determine the cluster repo type based on existing values (for edit mode)
+    const clusterRepoType = !!this.value.spec.gitRepo ? CLUSTER_REPO_TYPES.GIT_REPO : this.value.isOciType ? this.value.metadata.annotations[CATALOG.SUSE_APP_COLLECTION] ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL : CLUSTER_REPO_TYPES.HELM_URL;
 
     const clusterRepoTargets = [
       {
@@ -61,16 +54,20 @@ export default {
       {
         id:      CLUSTER_REPO_TYPES.OCI_URL,
         header:  { title: { key: 'catalog.repo.target.oci.title' } },
-        image:   { src: require('@shell/assets/images/providers/oci.svg'), alt: { key: 'catalog.repo.target.oci.title' } },
+        image:   { src: require('@shell/assets/images/providers/oci-open-containers.svg'), alt: { key: 'catalog.repo.target.oci.title' } },
         content: { key: 'catalog.repo.target.oci.description' },
       },
-      {
+    ];
+
+    // Only show SUSE App Collection option for RancherPrime
+    if (getVersionData()?.RancherPrime) {
+      clusterRepoTargets.push({
         id:      CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION,
         header:  { title: { key: 'catalog.repo.target.suseAppCollection.title' } },
         image:   { src: require('@shell/assets/images/content/suse.svg'), alt: { key: 'catalog.repo.target.suseAppCollection.title' } },
         content: { key: 'catalog.repo.target.suseAppCollection.description' },
-      },
-    ];
+      });
+    }
 
     return {
       CLUSTER_REPO_TYPES,
@@ -84,6 +81,16 @@ export default {
       previousName:        '',
       previousDescription: '',
     };
+  },
+
+  created() {
+    // When creating a new repo with a target query parameter, initialize the form properly
+    const targetFromQuery = this.mode === _CREATE ? this.$route.query.target : null;
+
+    if (targetFromQuery && Object.values(CLUSTER_REPO_TYPES).includes(targetFromQuery)) {
+      // Trigger onTargetChange to properly initialize form fields for the selected target
+      this.onTargetChange(targetFromQuery);
+    }
   },
 
   computed: {

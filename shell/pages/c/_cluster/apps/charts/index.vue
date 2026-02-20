@@ -12,7 +12,7 @@ import { lcFirst } from '@shell/utils/string';
 import { sortBy } from '@shell/utils/sort';
 import debounce from 'lodash/debounce';
 import { mapGetters } from 'vuex';
-import { SHOW_PRE_RELEASE } from '@shell/store/prefs';
+import { SHOW_PRE_RELEASE, HIDE_SUSE_APP_COLLECTION_REPO_BANNER } from '@shell/store/prefs';
 import { CATALOG } from '@shell/config/labels-annotations';
 import { CATALOG as CATALOG_TYPES, CATALOG_SORT_OPTIONS, CLUSTER_REPO_TYPES } from '@shell/config/types';
 
@@ -65,6 +65,12 @@ export default {
     this.filters.tags = normalizeFilterQuery(query[TAG]) || [];
 
     this.installedApps = await this.$store.dispatch('cluster/findAll', { type: CATALOG_TYPES.APP });
+
+    // Check if user has permission to create repositories
+    // This is used to show the banner to create repo if you don't have SUSE App Collection
+    const clusterCreateClusterRepo = await this.$store.dispatch('cluster/create', { type: CATALOG_TYPES.CLUSTER_REPO });
+
+    this.canCreateRepos = clusterCreateClusterRepo.canCreate;
   },
 
   updated() {
@@ -135,12 +141,18 @@ export default {
       hasOverflow:               false,
       getVersionData,
       CLUSTER_REPO_TYPES,
+      canCreateRepos:            false,
+      showAppCollectionBanner:   true,
     };
   },
 
   computed: {
     ...mapGetters(['currentCluster']),
     ...mapGetters({ allCharts: 'catalog/charts', loadingErrors: 'catalog/errors' }),
+
+    hideBannerPref() {
+      return this.$store.getters['prefs/get'](HIDE_SUSE_APP_COLLECTION_REPO_BANNER);
+    },
 
     repoOptions() {
       let out = this.$store.getters['catalog/repos'].map((r) => {
@@ -535,6 +547,11 @@ export default {
       }
 
       return chart.cardContent.statuses;
+    },
+
+    async closeSuseAppCollectionBanner() {
+      this.showAppCollectionBanner = false;
+      await this.$store.dispatch('prefs/set', { key: HIDE_SUSE_APP_COLLECTION_REPO_BANNER, value: true });
     }
   },
 };
@@ -592,10 +609,11 @@ export default {
       :label="err"
     />
     <Banner
-      v-if="suseAppCollectionRepo && !getVersionData()?.RancherPrime"
+      v-if="canCreateRepos && showAppCollectionBanner && !hideBannerPref"
       :key="i"
       color="info"
       closable
+      @close="closeSuseAppCollectionBanner"
     >
       <RichTranslation
         k="catalog.charts.appCollectionRepoMissing"

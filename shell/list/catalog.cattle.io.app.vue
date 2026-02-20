@@ -1,11 +1,10 @@
 <script>
 import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
 import { APP_UPGRADE_STATUS } from '@shell/store/catalog';
-import RcIcon from '@components/RcIcon/RcIcon.vue';
 
 export default {
   name:       'ListApps',
-  components: { PaginatedResourceTable, RcIcon },
+  components: { PaginatedResourceTable },
 
   props: {
     resource: {
@@ -66,18 +65,6 @@ export default {
           class="icon icon-info"
         />
       </span>
-    </template>
-    <template #cell:chart="{row}">
-      <div class="chart-col">
-        <span>{{ row.chartDisplay }}</span>
-        <RcIcon
-          v-if="row.isSuseAppCollection"
-          v-clean-tooltip="t('catalog.charts.isFromSuseAppCoRepository')"
-          status="info"
-          type="notify-info"
-          size="small"
-        />
-      </div>
     </template>
   </PaginatedResourceTable>
 </template>

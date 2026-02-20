@@ -443,7 +443,7 @@ export default {
       defaultGeneratedNameForImagePullSecret: null,
       clientSecret:                           null,
       showCreateAuthSecret:                   false,
-      useDefaultOption:                       true,
+      dontUseDefaultOption:                   false,
       AUTH_TYPE,
       stepBasic:                              {
         name:           'basics',
@@ -502,6 +502,18 @@ export default {
       return this.selectedSecret?.decodedData;
     },
 
+    canUseDefaultOption() {
+      // Can use default option if:
+      // 1. Has decoded data to create new secret from auth, OR
+      // 2. Default image pull secret already exists to reuse
+      return this.hasDecodedDataAvailable || !!this.defaultImagePullSecret;
+    },
+
+    shouldDisableDontUseDefaultCheckbox() {
+      // Disable checkbox if can't use default option and there's no default secret to use
+      return !this.hasDecodedDataAvailable && !this.defaultImagePullSecret;
+    },
+
     namespaceIsNew() {
       const all = this.$store.getters['cluster/all'](NAMESPACE);
       const want = this.value?.metadata?.namespace;
@@ -524,7 +536,7 @@ export default {
 
       const selectedRepoAuth = this.t('catalog.install.steps.basics.selectedRepoAuth', { repoAuthenticationName: this.selectedSecret.name }, {}, true);
 
-      if (this.useDefaultOption && !this.selectedImagePullSecret) {
+      if (!this.dontUseDefaultOption && !this.selectedImagePullSecret) {
         return `${ selectedRepoAuth } ${ this.t('catalog.install.steps.basics.generatedImagePullSecretBanner', { imagePullSecretName: this.defaultGeneratedNameForImagePullSecret }, {}, true) }`;
       } else if (!this.selectedImagePullSecret) {
         return `${ this.t('catalog.install.steps.basics.generatedImagePullSecretBanner', { imagePullSecretName: this.generatedNameForImagePullSecret }, {}, true) }`;
@@ -806,12 +818,13 @@ export default {
           this.project = project.replace(':', '/');
         }
 
-        this.useDefaultOption = true;
-        this.setImagePullSecretData();
+        // Reset to default, but setImagePullSecretData will adjust if needed
+        this.dontUseDefaultOption = false;
+        await this.setImagePullSecretData();
       }
     },
 
-    async useDefaultOption() {
+    async dontUseDefaultOption() {
       this.setImagePullSecretData();
     },
 
@@ -982,16 +995,22 @@ export default {
           this.defaultImagePullSecret = defaultImagePullSecret;
         }
 
-        if (this.useDefaultOption && defaultImagePullSecret) {
-          // If the default option is selected and the default secret already exists, use it
+        // If no decoded data and no default secret exists, must use non-default option
+        if (!this.hasDecodedDataAvailable && !defaultImagePullSecret) {
+          this.dontUseDefaultOption = true;
+        }
+
+        if (!this.dontUseDefaultOption && defaultImagePullSecret) {
+          // If the default option is used and the default secret already exists, use it
           this.selectedImagePullSecret = defaultImagePullSecret.name;
           this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
-        } else if (this.useDefaultOption && !defaultImagePullSecret) {
+        } else if (!this.dontUseDefaultOption && !defaultImagePullSecret && this.hasDecodedDataAvailable) {
           // Create new option with default generated name if the default option is selected
+          // and we have decoded data to create it from
           this.selectedImagePullSecret = null;
           this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
-        } else if (!this.useDefaultOption) {
-          // If doesn't have the useDefaultOption selected, it will respect the SELECT
+        } else if (this.dontUseDefaultOption) {
+          // If doesn't have the dontUseDefaultOption selected, it will respect the SELECT
           // New one with new username and password
           if (!this.selectedImagePullSecret) {
             this.chartValues.global.imagePullSecrets = [this.generatedNameForImagePullSecret];
@@ -1457,7 +1476,8 @@ export default {
       let imagePullSecretName = '';
 
       // If wants to use the default one, it will create the Image Pull Secret
-      if (this.useDefaultOption && !this.selectedImagePullSecret) {
+      // Only create if we have decodedData and no existing secret
+      if (!this.dontUseDefaultOption && !this.selectedImagePullSecret && this.hasDecodedDataAvailable) {
         // Create the secret for app collections
         const secret = await this.$store.dispatch('cluster/create', {
           type:     SECRET,
@@ -1480,10 +1500,10 @@ export default {
         imagePullSecretName = result.id.split('/')[1];
 
         // Now if it is not default, and there is a selectedImagePullSecret, ideally we should use it
-      } else if (!this.useDefaultOption && !this.selectedImagePullSecret) {
+      } else if (this.dontUseDefaultOption && !this.selectedImagePullSecret) {
         imagePullSecretName = this.selectedImagePullSecret;
       }
-      // If the useDefaultOption is false, than there is no need to change the data
+      // If the dontUseDefaultOption is false, than there is no need to change the data
 
       // Finally add the imagePullSecrets to the input, if it is already a DOCKER_JSON, it can use what has been setup on the page
       if (imagePullSecretName) {
@@ -1648,11 +1668,12 @@ export default {
             />
 
             <Checkbox
-              v-model:value="useDefaultOption"
-              label="Use/create a new Image Pull Secret using the Repository Authentication"
+              v-model:value="dontUseDefaultOption"
+              label-key="catalog.install.steps.basics.dontUseDefaultImagePullSecret"
+              :disabled="shouldDisableDontUseDefaultCheckbox"
             />
 
-            <div v-if="!useDefaultOption">
+            <div v-if="dontUseDefaultOption">
               <SelectOrCreateAuthSecret
                 v-model:value="selectedImagePullSecret"
                 :mode="mode"
