@@ -817,35 +817,47 @@ export default {
       }
     },
     async targetNamespace(neu) {
-      try {
-        this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
-      } catch (e) {
+      if (this.repo.isSuseAppCollection) {
+        try {
+          this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
+        } catch (e) {
         // If the secret doesn't exist, that's fine, we'll just create a new one later
-        this.defaultImagePullSecret = null;
-      }
+          this.defaultImagePullSecret = null;
+        }
 
-      // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
-      // Disable the checkbox
-      const previousDontUseDefaultOption = this.dontUseDefaultOption;
+        // On upgrade mode you cannot change namespace so this works as a full setup
+        if (!!this.existing) {
+          if (this.chartValues?.global?.imagePullSecrets?.[0]) {
+            this.selectedImagePullSecret = this.chartValues.global.imagePullSecrets[0];
+            this.dontUseDefaultOption = true;
+          }
 
-      if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
-        this.dontUseDefaultOption = true;
-        this.disabledCheckbox = true;
-      } else {
-        this.disabledCheckbox = false;
-        this.dontUseDefaultOption = false;
-      }
+          return;
+        }
 
-      // Setting default values if changing to avoid duplicated trigger
-      if (this.dontUseDefaultOption !== previousDontUseDefaultOption) {
-        if (this.defaultImagePullSecret) {
+        // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
+        // Disable the checkbox
+        const previousDontUseDefaultOption = this.dontUseDefaultOption;
+
+        if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
+          this.dontUseDefaultOption = true;
+          this.disabledCheckbox = true;
+        } else {
+          this.disabledCheckbox = false;
+          this.dontUseDefaultOption = false;
+        }
+
+        // Setting default values if changing to avoid duplicated trigger
+        if (this.dontUseDefaultOption !== previousDontUseDefaultOption) {
+          if (this.defaultImagePullSecret) {
           // If the default option is used and the default secret already exists, use it
-          this.selectedImagePullSecret = this.defaultImagePullSecret.name;
-          this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
-        } else if (!this.defaultImagePullSecret) {
+            this.selectedImagePullSecret = this.defaultImagePullSecret.name;
+            this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
+          } else if (!this.defaultImagePullSecret) {
           // Create new option with default generated name if the default option is selected
-          this.selectedImagePullSecret = null;
-          this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
+            this.selectedImagePullSecret = null;
+            this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
+          }
         }
       }
     },
@@ -1002,7 +1014,7 @@ export default {
     },
 
     async setImagePullSecretData() {
-      if (this.selectedSecret) {
+      if (this.selectedSecret && this.repo.isSuseAppCollection) {
         if (!this.dontUseDefaultOption && this.defaultImagePullSecret) {
           // If the default option is used and the default secret already exists, use it
           this.selectedImagePullSecret = this.defaultImagePullSecret.name;
@@ -1133,7 +1145,7 @@ export default {
 
         // Create namespace if it doesn't exist (before hooks run)
         // And only if it is SUSE APP Collection, overall should just do the same flow
-        if (!isUpgrade && this.isNamespaceNew && this.isSuseAppCollection) {
+        if (!isUpgrade && this.isNamespaceNew && this.repo.isSuseAppCollection) {
           await this.createNamespaceIfNeeded();
         }
 

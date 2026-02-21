@@ -73,10 +73,4 @@ export default {
 .apps :deep() .state-description{
   color: var(--error)
 }
-
-.chart-col {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
 </style>
