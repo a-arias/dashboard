@@ -244,27 +244,27 @@ describe('component: RKE2 - Fleet Agent Configuration', () => {
     it('should handle flannel masquerade configuration change', async() => {
       k3sWrapper.vm.handleFlannelMasqChanged(true);
 
-      expect(k3sWrapper.vm.serverConfig['enable-flannel-masq']).toBe(true);
+      expect(k3sWrapper.vm.serverConfig['flannel-ipv6-masq']).toBe(true);
     });
 
     it('should remove flannel masquerade configuration when set to false', async() => {
       // First set it to true
       k3sWrapper.vm.handleFlannelMasqChanged(true);
-      expect(k3sWrapper.vm.serverConfig['enable-flannel-masq']).toBe(true);
+      expect(k3sWrapper.vm.serverConfig['flannel-ipv6-masq']).toBe(true);
 
       // Then set it to false
       k3sWrapper.vm.handleFlannelMasqChanged(false);
-      expect(k3sWrapper.vm.serverConfig['enable-flannel-masq']).toBe(false);
+      expect(k3sWrapper.vm.serverConfig['flannel-ipv6-masq']).toBe(false);
     });
 
     it('should remove flannel masquerade configuration when set to null/undefined', async() => {
       // First set it to true
       k3sWrapper.vm.handleFlannelMasqChanged(true);
-      expect(k3sWrapper.vm.serverConfig['enable-flannel-masq']).toBe(true);
+      expect(k3sWrapper.vm.serverConfig['flannel-ipv6-masq']).toBe(true);
 
       // Then set it to null
       k3sWrapper.vm.handleFlannelMasqChanged(null);
-      expect(k3sWrapper.vm.serverConfig['enable-flannel-masq']).toBeUndefined();
+      expect(k3sWrapper.vm.serverConfig['flannel-ipv6-masq']).toBeUndefined();
     });
   });
 });
