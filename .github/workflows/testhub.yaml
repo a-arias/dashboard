@@ -8,12 +8,12 @@ name: TestHub Integration
 on:
   # Trigger when a workflow run completes
   workflow_run:
-    workflows: [Tests]
+    workflows: [Tests, "Code Coverage"]
     types:
       - completed
 
   # Trigger on PR events to sync PR info (don't need all events)
-  pull_request:
+  pull_request_target:
     types:
       - edited
       - closed
@@ -23,6 +23,9 @@ on:
       - demilestoned
       - ready_for_review
       - converted_to_draft
+    branches:
+      - 'master'
+      - 'release-*'
 
 jobs:
   # Job to register completed test runs with TestHub
