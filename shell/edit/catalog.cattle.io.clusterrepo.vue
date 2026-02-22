@@ -226,7 +226,6 @@ export default {
           :content="card.content"
           :selected="clusterRepoType === card.id"
           :clickable="true"
-          data-testid="clusterrepo-radio-input"
           variant="small"
           @card-click="onTargetChange(card.id)"
         />

@@ -118,7 +118,7 @@ export default class ExtensionsPagePo extends PagePo {
     appRepoCreate.nameNsDescription().name().self().scrollIntoView()
       .should('be.visible');
     appRepoCreate.nameNsDescription().name().set(name);
-    appRepoCreate.selectRadioOptionGitRepo(1);
+    appRepoCreate.selectRcItemCard('git-repo');
     // fill the git repo form
     appRepoCreate.enterGitRepoName(repo);
     appRepoCreate.enterGitBranchName(branch);
