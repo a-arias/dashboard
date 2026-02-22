@@ -465,7 +465,7 @@ export default {
       if ( this.value ) {
         if ( typeof this.value === 'object' ) {
           selected = `${ this.value.namespace }/${ this.value.name }`;
-        } else if ( this.value.includes('/') || this.value.includes(':')) {
+        } else if ( this.value.includes('/') || this.value.includes(':') ) {
           selected = this.value;
         } else if ( this.namespace ) {
           selected = `${ this.namespace }/${ this.value }`;

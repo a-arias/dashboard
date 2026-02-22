@@ -447,6 +447,5 @@ export default {
   width: 100%;
   height: max-content;
   overflow: hidden;
-
 }
 </style>

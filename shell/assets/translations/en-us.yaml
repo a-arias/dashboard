@@ -1339,9 +1339,7 @@ catalog:
         selectedRepoAuth: "The authentication that will be used is based on: <b>{ repoAuthenticationName }</b>.<br>"
         generatedImagePullSecretBanner: "A new Image Pull Secret will be generated with the name: <b>{ imagePullSecretName }</b>."
         usePreviouslyGeneratedImagePullSecretBanner: "Image Pull Secret <b>{ imagePullSecretName }</b> was already created previously and will be used."
-        createAnImagePullSecret: Create new Image Pull Secret based on selected Authentication
         imagePullSecret: Image Pull Secret
-        suseAppCoAuthentication: SUSE Application Collection Authentication
       clusterTplVersion:
         label: Version
         subtext: Select a version of the template
