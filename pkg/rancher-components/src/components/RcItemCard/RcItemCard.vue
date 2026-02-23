@@ -388,8 +388,9 @@ $image-medium-box-width: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fff;
+    background: var(--rc-image-bg);
     border-radius: var(--border-radius);
+    color: var(--rc-image-color);
 
     &.small {
       width: 32px;
