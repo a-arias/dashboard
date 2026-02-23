@@ -6,7 +6,7 @@ import LabeledSelectPo from '@/cypress/e2e/po/components/labeled-select.po';
 import NameNsDescription from '@/cypress/e2e/po/components/name-ns-description.po';
 import SelectOrCreateAuthPo from '@/cypress/e2e/po/components/select-or-create-auth.po';
 import KeyValuePo from '@/cypress/e2e/po/components/key-value.po';
-import RcItemCardPo from '~/cypress/e2e/po/components/rc-item-card.po';
+import RcItemCardPo from '@/cypress/e2e/po/components/rc-item-card.po';
 
 export default class ChartRepositoriesCreateEditPo extends PagePo {
   private static createPath(clusterId: string, product: 'apps' | 'manager', repoName?: string ) {
@@ -53,6 +53,18 @@ export default class ChartRepositoriesCreateEditPo extends PagePo {
 
   repoRcItemCard(id: string): RcItemCardPo {
     return RcItemCardPo.getCardById(id);
+  }
+
+  selectGitRepoCard() {
+    return this.repoRcItemCard('git-repo').click();
+  }
+
+  selectOciUrlCard() {
+    return this.repoRcItemCard('oci-url').click();
+  }
+
+  selectHelmUrlCard() {
+    return this.repoRcItemCard('helm-url').click();
   }
 
   lablesAnnotationsKeyValue() {

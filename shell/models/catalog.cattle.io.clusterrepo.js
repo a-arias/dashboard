@@ -1,7 +1,7 @@
 import { parse } from '@shell/utils/url';
 import { CATALOG } from '@shell/config/labels-annotations';
 import { insertAt } from '@shell/utils/array';
-import { CATALOG as CATALOG_TYPE } from '@shell/config/types';
+import { CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME, CATALOG as CATALOG_TYPE } from '@shell/config/types';
 import { colorForState, stateDisplay } from '@shell/plugins/dashboard-store/resource-class';
 
 import SteveModel from '@shell/plugins/steve/steve-class';
@@ -231,7 +231,7 @@ export default class ClusterRepo extends SteveModel {
 
   async save() {
     // Add annotation only if the type is SUSE_APP_COLLECTION
-    if (this.spec.clientSecret?.name?.search('clusterrepo-appco-auth-') === 0) {
+    if (this.spec.clientSecret?.name?.search(CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME) === 0) {
       if (!this.metadata.annotations) {
         this.metadata.annotations = {};
       }

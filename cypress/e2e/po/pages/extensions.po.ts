@@ -83,7 +83,7 @@ export default class ExtensionsPagePo extends PagePo {
     appRepoCreate.waitForPage();
 
     // fill the form
-    appRepoCreate.repoRcItemCard('git-repo').click();
+    appRepoCreate.selectGitRepoCard();
     appRepoCreate.nameNsDescription().name().self().scrollIntoView()
       .should('be.visible');
     appRepoCreate.nameNsDescription().name().set(name);

@@ -155,16 +155,35 @@ export default {
       default: false,
     },
 
+    /**
+     * Used specifically to fix the HTTP BASIC auth to generate specific authentication
+     * This is used to clear up the SELECT to make sure it only has HTTP BASIC with some special conditions
+     */
     fixedHttpBasicAuth: {
       type:    Boolean,
       default: false,
     },
 
+    /** Used together with fixedHttpBasicAuth
+     * It will filter all the cases to use this specific label at the start.
+     */
+    filterBasicAuth: {
+      type:    String,
+      default: '',
+    },
+
+    /**
+     * This works similar to other allow* but this makes specific to create as ImagePullSecret since it is specific for one page that only uses it
+     * To avoid using it in other places.
+     */
     fixedImagePullSecret: {
       type:    Boolean,
       default: false,
     },
 
+    /**
+     * Specific property to change labels if it is Github.com repository
+     */
     isGithubDotComRepository: {
       type:    Boolean,
       default: false,
@@ -226,7 +245,7 @@ export default {
 
       SSH:               AUTH_TYPE._SSH,
       BASIC:             AUTH_TYPE._BASIC,
-      IMAGE_PULL_SECRET: AUTH_TYPE._IMAGE_PULL_SECRET,
+      IMAGE_PULL_SECRET: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET,
       S3:                AUTH_TYPE._S3,
       RKE:               AUTH_TYPE._RKE,
     };
@@ -393,13 +412,13 @@ export default {
       if ( this.fixedImagePullSecret ) {
         out.unshift({
           label: this.t('selectOrCreateAuthSecret.createImagePullSecret'),
-          value: AUTH_TYPE._IMAGE_PULL_SECRET,
+          value: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET,
           kind:  'highlighted'
         });
       }
 
       if (this.fixedHttpBasicAuth) {
-        out = out.filter((o) => o.label.search('clusterrepo-appco-auth-') === 0 || ['title', 'divider'].includes(o.kind) || o.value === AUTH_TYPE._BASIC);
+        out = out.filter((o) => o.label.search(this.filterBasicAuth) === 0 || ['title', 'divider'].includes(o.kind) || o.value === AUTH_TYPE._BASIC);
       }
 
       return out;
@@ -410,7 +429,7 @@ export default {
         return '';
       }
 
-      if ( this.selected === AUTH_TYPE._SSH || this.selected === AUTH_TYPE._BASIC || this.selected === AUTH_TYPE._RKE || this.selected === AUTH_TYPE._S3 || this.selected === AUTH_TYPE._IMAGE_PULL_SECRET ) {
+      if ( this.selected === AUTH_TYPE._SSH || this.selected === AUTH_TYPE._BASIC || this.selected === AUTH_TYPE._RKE || this.selected === AUTH_TYPE._S3 || this.selected === AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET ) {
         return 'col span-4';
       }
 
@@ -515,7 +534,7 @@ export default {
     },
 
     updateKeyVal() {
-      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._IMAGE_PULL_SECRET].includes(this.selected) ) {
+      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET].includes(this.selected) ) {
         this.privateKey = '';
         this.publicKey = '';
         this.sshKnownHosts = '';
@@ -535,7 +554,7 @@ export default {
     },
 
     update() {
-      if ( (!this.selected || [AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._NONE, AUTH_TYPE._IMAGE_PULL_SECRET].includes(this.selected))) {
+      if ( (!this.selected || [AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._NONE, AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET].includes(this.selected))) {
         this.$emit('update:value', null);
       } else if ( this.selected.includes(':')) {
         // Cloud creds
@@ -559,7 +578,7 @@ export default {
     },
 
     async doCreate() {
-      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._IMAGE_PULL_SECRET].includes(this.selected) || this.delegateCreateToParent ) {
+      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET].includes(this.selected) || this.delegateCreateToParent ) {
         return;
       }
 
@@ -600,7 +619,7 @@ export default {
           publicField = 'username';
           privateField = 'password';
           break;
-        case AUTH_TYPE._IMAGE_PULL_SECRET:
+        case AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET:
           type = SECRET_TYPES.DOCKER_JSON;
           publicField = 'username';
           privateField = 'password';
@@ -629,7 +648,7 @@ export default {
             secret.data.known_hosts = base64Encode(this.sshKnownHosts || '');
           }
 
-          if (this.selected === AUTH_TYPE._IMAGE_PULL_SECRET) {
+          if (this.selected === AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET) {
             const config = {
               auths: {
                 'dp.apps.rancher.io': {
@@ -670,7 +689,7 @@ export default {
           v-model:value="selected"
           data-testid="auth-secret-select"
           :mode="mode"
-          :label-key="fixedImagePullSecret ? 'selectOrCreateAuthSecret.imagePullSecret' : labelKey"
+          :label-key="fixedImagePullSecret ? 'selectOrCreateAuthSecret.appCoImagePullSecret' : labelKey"
           :loading="$fetchState.pending"
           :options="options"
           :selectable="option => !option.disabled"

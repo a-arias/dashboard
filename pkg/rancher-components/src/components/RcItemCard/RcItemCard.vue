@@ -29,11 +29,9 @@ type Label = {
  * Represents an image used in the card.
  * Can be either a traditional image (src) or an icon (icon).
  */
-type Image = {
-  src?: string;
-  icon?: RcIconType;
-  alt?: Label;
-};
+type Image =
+ | { src?: never, icon: RcIconType; alt: Label; }
+ | { src: string; icon?: never, alt: Label; };
 
 /**
  * Optional pill badge, typically used to highlight a tag or state.
@@ -120,6 +118,9 @@ interface RcItemCardProps {
   /** The card will have same style as hover clickable with the blue border when selected */
   selected?: boolean;
 
+  /** Disables the card, preventing clicks and keyboard interaction */
+  disabled?: boolean;
+
   role?: 'link' | 'button' | undefined;
 }
 
@@ -138,6 +139,10 @@ const emit = defineEmits<{(e: 'card-click', value?: ItemValue): void; (e: 'actio
  * which then gets used to ignore 'card-click'
  */
 function _handleCardClick(e: MouseEvent | KeyboardEvent) {
+  if (props.disabled) {
+    return;
+  }
+
   const interactiveSelector = '[item-card-action]';
 
   // Prevent card click if the user clicks on an inner actionable element like repo, category, or tag
@@ -169,8 +174,8 @@ const statusTooltips = computed(() => props.header.statuses?.map((status) => lab
 
 const cardMeta = computed(() => ({
   ariaLabel:       props.clickable ? t('itemCard.ariaLabel.clickable', { cardTitle: labelText(props.header.title) }) : undefined,
-  tabIndex:        props.clickable ? '0' : undefined,
-  role:            props.role ?? (props.clickable ? 'button' : undefined),
+  tabIndex:        props.clickable && !props.disabled ? '0' : undefined,
+  role:            props.role ?? (props.clickable && !props.disabled ? 'button' : undefined),
   actionMenuLabel: props.actions && t('itemCard.actionMenu.label', { cardTitle: labelText(props.header.title) }),
 }));
 
@@ -184,7 +189,7 @@ const cursorValue = computed(() => props.clickable ? 'pointer' : 'auto');
     :data-testid="`item-card-${id}`"
     :class="{
       'clickable':
-        clickable,'selected': selected
+        clickable && !disabled,'selected': selected, 'disabled': disabled
     }"
     @click="_handleCardClick"
   >
@@ -350,6 +355,21 @@ $image-medium-box-width: 48px;
   &.clickable:hover,
   &.selected {
     border-color: var(--primary);
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    background-color: var(--disabled-bg);
+    color: var(--disabled-text);
+
+    .item-card-image {
+      background-color: var(--disabled-bg);
+    }
+
+    .item-card-header-title,
+    .item-card-content {
+      color: var(--disabled-text);
+    }
   }
 
   &:has(.item-card-header-left:focus-visible) {

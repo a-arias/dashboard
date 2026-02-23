@@ -26,7 +26,7 @@ import TypeDescription from '@shell/components/TypeDescription';
 import ChartMixin from '@shell/mixins/chart';
 import ChildHook, { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import {
-  CATALOG, MANAGEMENT, DEFAULT_WORKSPACE, CAPI, SECRET,
+  CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME, CATALOG, MANAGEMENT, DEFAULT_WORKSPACE, CAPI, SECRET,
   AUTH_TYPE, NAMESPACE as NAMESPACE_TYPE
 } from '@shell/config/types';
 import {
@@ -384,13 +384,16 @@ export default {
         try {
           defaultSelectedSecret = (await this.$store.dispatch('cluster/find', { type: SECRET, id: `cattle-system/${ this.repo.spec.clientSecret.name }` }));
         } catch (e) {
-          // If the secret doesn't exist, technically should be an impossible case
+          // If cannot get the secret for any reason, permission or doesn't exist
+          // We can fallback to use the name only and with that name move forward.
+          // On only other required data is the DecodedData but not having it will only trigger a different flow.
+          defaultSelectedSecret = { name: this.repo.spec.clientSecret.name };
         }
       }
 
       this.selectedSecret = defaultSelectedSecret;
-      this.defaultGeneratedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret`;
-      this.generatedNameForImagePullSecret = `${ this.selectedSecret.id.split('/')[1] }-image-pull-secret-${ generateRandomAlphaString(5) }`;
+      this.defaultGeneratedNameForImagePullSecret = `${ this.selectedSecret.name }-image-pull-secret`;
+      this.generatedNameForImagePullSecret = `${ this.selectedSecret.name }-image-pull-secret-${ generateRandomAlphaString(5) }`;
 
       this.setImagePullSecretData();
     }
@@ -447,6 +450,7 @@ export default {
       dontUseDefaultOption:                   false,
       disabledCheckbox:                       false,
       AUTH_TYPE,
+      CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME,
       stepBasic:                              {
         name:           'basics',
         label:          this.t('catalog.install.steps.basics.label'),
@@ -501,6 +505,7 @@ export default {
     },
 
     hasDecodedDataAvailable() {
+      // Will return false if doesn't have access to neither ther decodedData or the selectedSecret, or if the decodedData is empty
       return this.selectedSecret?.decodedData;
     },
 
@@ -524,14 +529,12 @@ export default {
         return '';
       }
 
-      const selectedRepoAuth = this.t('catalog.install.steps.basics.selectedRepoAuth', { repoAuthenticationName: this.selectedSecret.name }, {}, true);
-
       if (!this.dontUseDefaultOption && !this.selectedImagePullSecret) {
-        return `${ selectedRepoAuth } ${ this.t('catalog.install.steps.basics.generatedImagePullSecretBanner', { imagePullSecretName: this.defaultGeneratedNameForImagePullSecret }, {}, true) }`;
+        return `${ this.t('catalog.install.steps.basics.generatedImagePullSecretBannerFromPreviousAuth', { imagePullSecretName: this.defaultGeneratedNameForImagePullSecret, repoAuthenticationName: this.selectedSecret.name }, {}, true) }`;
       } else if (!this.selectedImagePullSecret) {
-        return `${ this.t('catalog.install.steps.basics.generatedImagePullSecretBanner', { imagePullSecretName: this.generatedNameForImagePullSecret }, {}, true) }`;
+        return `${ this.t('catalog.install.steps.basics.generatedNewImagePullSecret', { imagePullSecretName: this.generatedNameForImagePullSecret }, {}, true) }`;
       } else if (this.selectedImagePullSecret === this.defaultImagePullSecret?.name) {
-        return `${ selectedRepoAuth } ${ this.t('catalog.install.steps.basics.usePreviouslyGeneratedImagePullSecretBanner', { imagePullSecretName: this.selectedImagePullSecret }, {}, true) }`;
+        return `${ this.t('catalog.install.steps.basics.usePreviouslyGeneratedImagePullSecretBanner', { imagePullSecretName: this.selectedImagePullSecret, repoAuthenticationName: this.selectedSecret.name }, {}, true) }`;
       }
 
       return '';
@@ -815,8 +818,7 @@ export default {
           this.project = project.replace(':', '/');
         }
       }
-    },
-    async targetNamespace(neu) {
+
       if (this.repo.isSuseAppCollection) {
         try {
           this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
@@ -1692,13 +1694,13 @@ export default {
                 data-testid="clusterrepo-auth-secret"
                 :register-before-hook="registerBeforeHook"
                 :namespace="value.namespace"
-                :pre-select="{ selected: AUTH_TYPE._IMAGE_PULL_SECRET }"
+                :pre-select="{ selected: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET }"
                 :limit-to-namespace="true"
                 :in-store="inStore"
                 :allow-ssh="false"
                 :allow-none="false"
                 :allow-basic="false"
-                :generate-name="'clusterrepo-appco-auth-image-pull-secret-'"
+                :generate-name="`${CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME}image-pull-secret-`"
                 :cache-secrets="true"
                 :fixed-image-pull-secret="true"
                 :client-generated-name="generatedNameForImagePullSecret"

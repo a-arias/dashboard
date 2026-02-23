@@ -53,7 +53,7 @@ describe('Cluster Management Helm Repositories', { testIsolation: 'off', tags: [
     repositoriesPage.createEditRepositories().waitForPage();
     repositoriesPage.createEditRepositories().nameNsDescription().name().set(this.repoName);
     repositoriesPage.createEditRepositories().nameNsDescription().description().set(`${ this.repoName }-description`);
-    repositoriesPage.createEditRepositories().repoRcItemCard('git-repo').click();
+    repositoriesPage.createEditRepositories().selectGitRepoCard();
     repositoriesPage.createEditRepositories().gitRepoUrl().set(gitRepoUrl);
     repositoriesPage.createEditRepositories().gitBranch().set(chartBranch);
     repositoriesPage.createEditRepositories().saveAndWaitForRequests('POST', CLUSTER_REPOS_BASE_URL).its('response.statusCode').should('eq', 201);
@@ -156,7 +156,7 @@ describe('Cluster Management Helm Repositories', { testIsolation: 'off', tags: [
     repositoriesPage.createEditRepositories().waitForPage();
     repositoriesPage.createEditRepositories().nameNsDescription().name().set(`${ this.repoName }basic`);
     repositoriesPage.createEditRepositories().nameNsDescription().description().set(`${ this.repoName }-description`);
-    repositoriesPage.createEditRepositories().repoRcItemCard('git-repo').click();
+    repositoriesPage.createEditRepositories().selectGitRepoCard();
     repositoriesPage.createEditRepositories().gitRepoUrl().set(gitRepoUrl);
     repositoriesPage.createEditRepositories().gitBranch().set(chartBranch);
     repositoriesPage.createEditRepositories().clusterRepoAuthSelectOrCreate().createBasicAuth('test', 'test');
@@ -175,7 +175,7 @@ describe('Cluster Management Helm Repositories', { testIsolation: 'off', tags: [
     repositoriesPage.createEditRepositories().waitForPage();
     repositoriesPage.createEditRepositories().nameNsDescription().name().set(`${ this.repoName }ssh`);
     repositoriesPage.createEditRepositories().nameNsDescription().description().set(`${ this.repoName }-description`);
-    repositoriesPage.createEditRepositories().repoRcItemCard('git-repo').click();
+    repositoriesPage.createEditRepositories().selectGitRepoCard();
     repositoriesPage.createEditRepositories().gitRepoUrl().set(gitRepoUrl);
     repositoriesPage.createEditRepositories().gitBranch().set(chartBranch);
     repositoriesPage.createEditRepositories().clusterRepoAuthSelectOrCreate().createSSHAuth('privateKey', 'publicKey');
@@ -240,7 +240,7 @@ describe('Cluster Management Helm Repositories', { testIsolation: 'off', tags: [
 
     repositoriesPage.createEditRepositories().nameNsDescription().name().set(this.repoName);
     repositoriesPage.createEditRepositories().nameNsDescription().description().set(`${ this.repoName }-description`);
-    repositoriesPage.createEditRepositories().repoRcItemCard('oci-url').click();
+    repositoriesPage.createEditRepositories().selectOciUrlCard();
     repositoriesPage.createEditRepositories().ociUrl().set(ociUrl);
     repositoriesPage.createEditRepositories().refreshIntervalInput().setValue(refreshInterval);
     repositoriesPage.createEditRepositories().clusterRepoAuthSelectOrCreate().createBasicAuth('test', 'test');

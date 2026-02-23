@@ -141,8 +141,10 @@ export default {
       hasOverflow:               false,
       getVersionData,
       CLUSTER_REPO_TYPES,
+      CATALOG_TYPES,
       canCreateRepos:            false,
       showAppCollectionBanner:   true,
+      isPrime:                   getVersionData().RancherPrime === 'true',
     };
   },
 
@@ -152,6 +154,18 @@ export default {
 
     hideBannerPref() {
       return this.$store.getters['prefs/get'](HIDE_SUSE_APP_COLLECTION_REPO_BANNER);
+    },
+
+    showAppCollectionBannerLogic() {
+      return !this.hasSuseAppCollectionRepo && this.canCreateRepos && this.showAppCollectionBanner && !this.hideBannerPref & this.isPrime;
+    },
+
+    hasSuseAppCollectionRepo() {
+      return this.suseAppCollectionRepo.length > 0;
+    },
+
+    showErrorBanner() {
+      return this.loadingErrors && this.loadingErrors.length > 0;
     },
 
     repoOptions() {
@@ -607,12 +621,14 @@ export default {
       :key="i"
       color="error"
       :label="err"
+      class="banner-mb-15px"
     />
     <Banner
-      v-if="canCreateRepos && showAppCollectionBanner && !hideBannerPref"
+      v-if="showAppCollectionBannerLogic"
       :key="i"
       color="info"
       closable
+      class="banner-mb-15px"
       @close="closeSuseAppCollectionBanner"
     >
       <RichTranslation
@@ -622,7 +638,7 @@ export default {
       >
         <template #repoCreate="{ content }">
           <router-link
-            :to="{ name: 'c-cluster-product-resource-create', params: { resource: 'catalog.cattle.io.clusterrepo', cluster: $route.params.cluster, product: $store.getters['productId'] }, query: { target: CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION } }"
+            :to="{ name: 'c-cluster-product-resource-create', params: { resource: CATALOG_TYPES.CLUSTER_REPO, cluster: $route.params.cluster, product: $store.getters['productId'] }, query: { target: CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION } }"
             class="secondary-text-link"
             tabindex="0"
           >
@@ -631,6 +647,10 @@ export default {
         </template>
       </RichTranslation>
     </Banner>
+    <div
+      v-if="showAppCollectionBannerLogic || showErrorBanner"
+      class="banner-spacer"
+    />
 
     <div class="wrapper">
       <FilterPanel
@@ -906,6 +926,14 @@ export default {
   .single-card {
     max-width: 500px;
   }
+}
+
+.banner-mb-15px {
+  margin: 0 0 15px 0;
+}
+
+.banner-spacer {
+  height: 9px;
 }
 
 </style>

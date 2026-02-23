@@ -391,12 +391,12 @@ export const ADDRESSES = {
 export const DEFAULT_WORKSPACE = 'fleet-default';
 
 export const AUTH_TYPE = {
-  _NONE:              '_none',
-  _BASIC:             '_basic',
-  _SSH:               '_ssh',
-  _S3:                '_S3',
-  _RKE:               '_RKE',
-  _IMAGE_PULL_SECRET: '_IPS',
+  _NONE:                     '_none',
+  _BASIC:                    '_basic',
+  _SSH:                      '_ssh',
+  _S3:                       '_S3',
+  _RKE:                      '_RKE',
+  _APP_CO_IMAGE_PULL_SECRET: '_IPS',
 };
 
 export const LOCAL_CLUSTER = 'local';
@@ -405,8 +405,11 @@ export const CLUSTER_REPO_TYPES = {
   HELM_URL:            'helm-url',
   GIT_REPO:            'git-repo',
   OCI_URL:             'oci-url',
-  SUSE_APP_COLLECTION: 'suse-application-collection',
+  SUSE_APP_COLLECTION: 'suse-application-collection'
 };
+
+export const CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME = 'clusterrepo-appco-auth-';
+export const CLUSTER_REPO_AUTH_GENERATE_NAME = 'clusterrepo-auth-';
 
 export const ZERO_TIME = '0001-01-01T00:00:00Z';
 

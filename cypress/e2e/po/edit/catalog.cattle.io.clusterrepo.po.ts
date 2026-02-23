@@ -7,7 +7,7 @@ import AsyncButtonPo from '@/cypress/e2e/po/components/async-button.po';
 import CheckboxInputPo from '@/cypress/e2e/po/components/checkbox-input.po';
 import SelectOrCreateAuthPo from '@/cypress/e2e/po/components/select-or-create-auth.po';
 import FooterPo from '@/cypress/e2e/po/components/footer.po';
-import RcItemCardPo from '~/cypress/e2e/po/components/rc-item-card.po';
+import RcItemCardPo from '@/cypress/e2e/po/components/rc-item-card.po';
 
 /**
  * Covers core functionality that's common to the dashboard's import or create cluster pages
