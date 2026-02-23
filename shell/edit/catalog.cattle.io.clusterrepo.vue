@@ -90,7 +90,7 @@ export default {
       ociMaxWait:          this.value.spec.exponentialBackOffValues?.maxWait,
       ociMaxRetries:       this.value.spec.exponentialBackOffValues?.maxRetries,
       getVersionData,
-      _VIEW,
+      isView:              this.mode === _VIEW,
       clusterRepoTargets,
       previousName:        '',
       previousDescription: '',
@@ -240,7 +240,7 @@ export default {
           :content="card.content"
           :selected="clusterRepoType === card.id"
           :clickable="true"
-          :disabled="mode === _VIEW"
+          :disabled="isView"
           variant="small"
           @card-click="onTargetChange(card.id)"
         />
