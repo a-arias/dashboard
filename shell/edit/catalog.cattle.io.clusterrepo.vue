@@ -15,7 +15,7 @@ import { CATALOG } from '@shell/config/labels-annotations';
 import UnitInput from '@shell/components/form/UnitInput.vue';
 import { getVersionData } from '@shell/config/version';
 import { RcItemCard } from '@components/RcItemCard';
-import { _CREATE, _EDIT, TARGET } from '@shell/config/query-params';
+import { _CREATE, _EDIT, TARGET, _VIEW } from '@shell/config/query-params';
 import { RcIconType } from '@components/RcIcon/types';
 
 export default {
@@ -90,6 +90,7 @@ export default {
       ociMaxWait:          this.value.spec.exponentialBackOffValues?.maxWait,
       ociMaxRetries:       this.value.spec.exponentialBackOffValues?.maxRetries,
       getVersionData,
+      _VIEW,
       clusterRepoTargets,
       previousName:        '',
       previousDescription: '',
@@ -239,7 +240,7 @@ export default {
           :content="card.content"
           :selected="clusterRepoType === card.id"
           :clickable="true"
-          :disabled="true"
+          :disabled="mode === _VIEW"
           variant="small"
           @card-click="onTargetChange(card.id)"
         />
