@@ -1391,6 +1391,7 @@ catalog:
       rancher-partner-charts: Partners
       rancher-rke2-charts: RKE2
       rancher-ui-plugins: Rancher Extensions
+      suse-application-collection: SUSE App Collection
 
     target:
       git: 
