@@ -11,7 +11,6 @@ import {
   MANAGEMENT, NAMESPACE, CLUSTER_REPO_TYPES, AUTH_TYPE,
   CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME, CLUSTER_REPO_AUTH_GENERATE_NAME
 } from '@shell/config/types';
-import { CATALOG } from '@shell/config/labels-annotations';
 import UnitInput from '@shell/components/form/UnitInput.vue';
 import { getVersionData } from '@shell/config/version';
 import { RcItemCard } from '@components/RcItemCard';
