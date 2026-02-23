@@ -327,6 +327,8 @@ export default {
         userValues = {};
       }
 
+      this.userValues = userValues;
+
       /*
         Remove global values if they are identical to
         the currently available information about the cluster
@@ -447,7 +449,7 @@ export default {
       defaultImagePullSecret:                 null,
       clientSecret:                           null,
       showCreateAuthSecret:                   false,
-      dontUseDefaultOption:                   false,
+      dontUseDefaultOption:                   null,
       disabledCheckbox:                       false,
       AUTH_TYPE,
       CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME,
@@ -505,7 +507,7 @@ export default {
     },
 
     hasDecodedDataAvailable() {
-      // Will return false if doesn't have access to neither ther decodedData or the selectedSecret, or if the decodedData is empty
+      // Will return false if doesn't have access to neither the decodedData or the selectedSecret, or if the decodedData is empty
       return this.selectedSecret?.decodedData;
     },
 
@@ -827,28 +829,30 @@ export default {
           this.defaultImagePullSecret = null;
         }
 
+        // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
+        // Disable the checkbox
+        const previousDontUseDefaultOption = this.dontUseDefaultOption;
+        let dontUseDefaultOption = false;
+
+        if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
+          dontUseDefaultOption = true;
+          this.disabledCheckbox = true;
+        } else {
+          dontUseDefaultOption = false;
+          this.disabledCheckbox = false;
+        }
+
         // On upgrade mode you cannot change namespace so this works as a full setup
         if (!!this.existing) {
-          if (this.chartValues?.global?.imagePullSecrets?.[0]) {
-            this.selectedImagePullSecret = this.chartValues.global.imagePullSecrets[0];
-            this.dontUseDefaultOption = true;
+          if (this.userValues?.global?.imagePullSecrets?.[0]) {
+            this.selectedImagePullSecret = this.userValues?.global?.imagePullSecrets[0];
           }
+          this.dontUseDefaultOption = true;
 
           return;
         }
 
-        // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
-        // Disable the checkbox
-        const previousDontUseDefaultOption = this.dontUseDefaultOption;
-
-        if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
-          this.dontUseDefaultOption = true;
-          this.disabledCheckbox = true;
-        } else {
-          this.disabledCheckbox = false;
-          this.dontUseDefaultOption = false;
-        }
-
+        this.dontUseDefaultOption = dontUseDefaultOption;
         // Setting default values if changing to avoid duplicated trigger
         if (this.dontUseDefaultOption !== previousDontUseDefaultOption) {
           if (this.defaultImagePullSecret) {
@@ -1016,7 +1020,7 @@ export default {
     },
 
     async setImagePullSecretData() {
-      if (this.selectedSecret && this.repo.isSuseAppCollection) {
+      if (this.selectedSecret && this.repo.isSuseAppCollection && this.dontUseDefaultOption !== null) {
         if (!this.dontUseDefaultOption && this.defaultImagePullSecret) {
           // If the default option is used and the default secret already exists, use it
           this.selectedImagePullSecret = this.defaultImagePullSecret.name;
