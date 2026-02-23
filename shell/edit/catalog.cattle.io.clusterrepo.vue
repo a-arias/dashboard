@@ -44,7 +44,7 @@ export default {
     if (!!this.value.spec.gitRepo) {
       clusterRepoType = CLUSTER_REPO_TYPES.GIT_REPO;
     } else if (this.value.isOciType) {
-      clusterRepoType = this.value.metadata.annotations[CATALOG.SUSE_APP_COLLECTION] ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL;
+      clusterRepoType = this.value?.isSuseAppCollection ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL;
     } else {
       clusterRepoType = CLUSTER_REPO_TYPES.HELM_URL;
     }
