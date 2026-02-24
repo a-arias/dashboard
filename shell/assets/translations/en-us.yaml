@@ -6306,6 +6306,8 @@ selectOrCreateAuthSecret:
   createRKE: Create an RKE Auth Config Secret
   createImagePullSecretBasedOnAuth: Create an Image Pull Secret based on Authentication Secret
   createImagePullSecret: Create a new Image Pull Secret with new Username/Password
+  suseAppCollectionSecrets: SUSE App Collection Secrets
+  regularSecrets: Regular Secrets
 
 serviceAccount:
   automount: Automount Service Account Token

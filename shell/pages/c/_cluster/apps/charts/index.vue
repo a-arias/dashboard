@@ -191,7 +191,7 @@ export default {
     },
 
     suseAppCollectionRepo() {
-      const suseRepos = this.$store.getters['catalog/repos'].filter((r) => r.isSuseAppCollection);
+      const suseRepos = this.$store.getters['catalog/repos'].filter((r) => r.isSuseAppCollectionAvailable);
       const out = suseRepos.map((r) => r.metadata.name);
 
       return out;
