@@ -396,8 +396,9 @@ export default {
       this.selectedSecret = defaultSelectedSecret;
       this.defaultGeneratedNameForImagePullSecret = `${ this.selectedSecret.name }-image-pull-secret`;
       this.generatedNameForImagePullSecret = `${ this.selectedSecret.name }-image-pull-secret-${ generateRandomAlphaString(5) }`;
-
-      this.setImagePullSecretData();
+      this.appCoDataFetched = true;
+      await this.initializeDataForNamespaceChanges();
+      await this.setImagePullSecretData();
     }
   },
 
@@ -451,6 +452,7 @@ export default {
       showCreateAuthSecret:                   false,
       dontUseDefaultOption:                   null,
       disabledCheckbox:                       false,
+      appCoDataFetched:                       false,
       AUTH_TYPE,
       CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME,
       stepBasic:                              {
@@ -822,49 +824,7 @@ export default {
       }
 
       if (this.repo.isSuseAppCollection) {
-        try {
-          this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
-        } catch (e) {
-        // If the secret doesn't exist, that's fine, we'll just create a new one later
-          this.defaultImagePullSecret = null;
-        }
-
-        // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
-        // Disable the checkbox
-        const previousDontUseDefaultOption = this.dontUseDefaultOption;
-        let dontUseDefaultOption = false;
-
-        if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
-          dontUseDefaultOption = true;
-          this.disabledCheckbox = true;
-        } else {
-          dontUseDefaultOption = false;
-          this.disabledCheckbox = false;
-        }
-
-        // On upgrade mode you cannot change namespace so this works as a full setup
-        if (!!this.existing) {
-          if (this.userValues?.global?.imagePullSecrets?.[0]) {
-            this.selectedImagePullSecret = this.userValues?.global?.imagePullSecrets[0];
-          }
-          this.dontUseDefaultOption = true;
-
-          return;
-        }
-
-        this.dontUseDefaultOption = dontUseDefaultOption;
-        // Setting default values if changing to avoid duplicated trigger
-        if (this.dontUseDefaultOption !== previousDontUseDefaultOption) {
-          if (this.defaultImagePullSecret) {
-          // If the default option is used and the default secret already exists, use it
-            this.selectedImagePullSecret = this.defaultImagePullSecret.name;
-            this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
-          } else if (!this.defaultImagePullSecret) {
-          // Create new option with default generated name if the default option is selected
-            this.selectedImagePullSecret = null;
-            this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
-          }
-        }
+        await this.initializeDataForNamespaceChanges();
       }
     },
 
@@ -976,6 +936,54 @@ export default {
       }
     },
 
+    async initializeDataForNamespaceChanges() {
+      // Skip the flow if the data still not fetched, it will trigger after fetching manually
+      if (this.appCoDataFetched) {
+        try {
+          this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
+        } catch (e) {
+        // If the secret doesn't exist, that's fine, we'll just create a new one later
+          this.defaultImagePullSecret = null;
+        }
+
+        // Reset if doesnt have the defaultImagePullSecret and doesn't have decoded data
+        // Disable the checkbox
+        const previousDontUseDefaultOption = this.dontUseDefaultOption;
+        let dontUseDefaultOption = false;
+
+        if (!this.hasDecodedDataAvailable && !this.defaultImagePullSecret) {
+          dontUseDefaultOption = true;
+          this.disabledCheckbox = true;
+        } else {
+          dontUseDefaultOption = false;
+          this.disabledCheckbox = false;
+        }
+
+        // On upgrade mode you cannot change namespace so this works as a full setup
+        if (!!this.existing) {
+          if (this.userValues?.global?.imagePullSecrets?.[0]) {
+            this.selectedImagePullSecret = this.userValues?.global?.imagePullSecrets[0];
+          }
+          this.dontUseDefaultOption = true;
+
+          return;
+        }
+
+        this.dontUseDefaultOption = dontUseDefaultOption;
+        // Setting default values if changing to avoid duplicated trigger
+        if (this.dontUseDefaultOption !== previousDontUseDefaultOption) {
+          if (this.defaultImagePullSecret) {
+          // If the default option is used and the default secret already exists, use it
+            this.selectedImagePullSecret = this.defaultImagePullSecret.name;
+            this.chartValues.global.imagePullSecrets = [this.selectedImagePullSecret];
+          } else if (!this.defaultImagePullSecret) {
+          // Create new option with default generated name if the default option is selected
+            this.selectedImagePullSecret = null;
+            this.chartValues.global.imagePullSecrets = [this.defaultGeneratedNameForImagePullSecret];
+          }
+        }
+      }
+    },
     async getClusterRegistry() {
       const hasPermissionToSeeProvCluster = this.$store.getters[`management/schemaFor`](CAPI.RANCHER_CLUSTER);
 
