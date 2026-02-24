@@ -143,12 +143,17 @@ export default class ClusterRepo extends SteveModel {
     return this.metadata?.state?.name === 'active';
   }
 
-  get isSuseAppCollection() {
+  get isSuseAppCollectionFromUI() {
     return this.metadata?.annotations?.[CATALOG.SUSE_APP_COLLECTION];
   }
 
+  get isSuseAppCollection() {
+    // Check annotation set by the UI or if the URL points to the SUSE App Collection registry
+    return this.isSuseAppCollectionFromUI || this.spec?.url?.startsWith('oci://dp.apps.rancher.io/charts');
+  }
+
   get typeDisplay() {
-    if (this.isSuseAppCollection) {
+    if (this.isSuseAppCollectionFromUI) {
       return 'SUSE AppCo';
     }
     if ( this.spec.gitRepo ) {
