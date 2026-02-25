@@ -236,7 +236,7 @@ describe('Home Page', () => {
       cy.url().should('include', '/support');
     });
 
-    it('can click on SUSE Application Collection link', { tags: ['@jenkins', '@prime'] }, () => {
+    it('can click on SUSE Application Collection link', { tags: ['@jenkins', '@prime', '@scc'] }, () => {
       catchTargetPageException(RANCHER_PAGE_EXCEPTIONS);
 
       // click SUSE Application Collection link

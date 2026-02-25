@@ -3,7 +3,7 @@ import CloudCredentialsPagePo from '@/cypress/e2e/po/pages/cluster-manager/cloud
 import HomePagePo from '@/cypress/e2e/po/pages/home.po';
 
 // will only run this in jenkins pipeline where cloud credentials are stored
-describe('Cloud Credentials', { tags: ['@manager', '@jenkins', '@adminUser', '@standardUser'] }, () => {
+describe('Cloud Credentials', { tags: ['@manager', '@jenkins', '@adminUser', '@standardUser', '@clusterConfig'] }, () => {
   const cloudCredentialsPage = new CloudCredentialsPagePo();
   let cloudcredentialId = '';
 

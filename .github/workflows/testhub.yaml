@@ -23,6 +23,9 @@ on:
       - demilestoned
       - ready_for_review
       - converted_to_draft
+      - assigned
+      - unassigned
+
     branches:
       - 'master'
       - 'release-*'
@@ -73,7 +76,7 @@ jobs:
       TESTHUB_TOKEN: ${{ secrets.TESTHUB_TOKEN }}
 
     # Only run for pull_request events when env vars are configured
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request_target'
     steps:
       - name: Sync PR info with TestHub
         # Continue even if this fails - we don't want to fail the workflow

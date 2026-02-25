@@ -505,8 +505,7 @@ describe('Fleet CLuster List - resources', { tags: ['@fleet', '@adminUser'] }, (
 describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () => {
   before(() => {
     cy.login();
-    // Set theme to light
-    cy.setUserPreference({ theme: 'ui-light' });
+    cy.applyDefaultTestTheme();
   });
 
   it('should display fleet clusters list page', () => {

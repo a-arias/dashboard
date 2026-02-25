@@ -121,7 +121,7 @@ declare global {
          */
         wait?: number,
       }): Chainable;
-
+      applyDefaultTestTheme(): Chainable<any>;
       getRancherVersion(): Chainable<any>;
       getRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId?: string, expectedStatusCode?: number): Chainable;
       setRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId: string, body: any): Chainable;

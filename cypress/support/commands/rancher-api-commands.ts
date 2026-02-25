@@ -1402,3 +1402,40 @@ Cypress.Commands.add('getClusterIdByName', (clusterName: string) => {
     }
   });
 });
+
+/**
+ * Cypress custom command: applyDefaultTestTheme
+ *
+ * Sets the Rancher UI to use the modern branding theme and applies the light (white) theme for the current user.
+ *
+ * Steps performed:
+ * 1. Updates the Rancher "ui-brand" setting via the v3 API to "modern".
+ * 2. Sets the user's UI preference theme to "ui-light".
+ *
+ * Usage:
+ *    cy.applyDefaultTestTheme();
+ *
+ * Notes:
+ * - Requires that cy.setRancherResource and cy.setUserPreference commands are defined.
+ * - Uses the v3 Rancher API, which avoids conflicts with resourceVersion.
+ * - Ideal for automation tests where a consistent UI theme is needed.
+ */
+Cypress.Commands.add('applyDefaultTestTheme', () => {
+  // Step 1: Set Rancher branding
+  cy.setRancherResource('v3', 'settings', 'ui-brand', { value: 'modern' })
+    .then((response) => {
+      Cypress.log({
+        name:    'setRancherResource',
+        message: `Rancher UI brand set to: ${ response.value || 'MODERN' }`
+      });
+    });
+
+  // Step 2: Set user preference for light theme
+  cy.setUserPreference({ theme: 'ui-light' })
+    .then((response) => {
+      Cypress.log({
+        name:    'setUserPreference',
+        message: `User theme preference set to: ${ response.theme || 'ui-light' }`
+      });
+    });
+});

@@ -170,8 +170,7 @@ describe('Pod Security Admissions', { testIsolation: 'off', tags: ['@manager', '
 describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () => {
   before(() => {
     cy.login();
-    // Set theme to light
-    cy.setUserPreference({ theme: 'ui-light' });
+    cy.applyDefaultTestTheme();
   });
 
   it('should display Pod Security Admissions list page', () => {
@@ -185,7 +184,7 @@ describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () =>
     podSecurityAdmissionsPage.list().resourceTable().sortableTable().noRowsShouldNotExist();
 
     // hide elements before taking percy snapshot
-    cy.hideElementBySelector('[data-testid="nav_header_showUserMenu"]', '[data-testid="type-count"]');
+    cy.hideElementBySelector('[data-testid="nav_header_showUserMenu"]', '[data-testid="type-count"]', 'td.col-live-date span.live-date');
 
     // takes percy snapshot.
     cy.percySnapshot('Pod Security Admissions list page');

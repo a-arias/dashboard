@@ -43,6 +43,10 @@ export default {
       hash.pods = this.value.fetchPods();
     }
 
+    if (this.serviceSchema) {
+      hash.servicesInNamespace = this.$store.dispatch('cluster/findAll', { type: SERVICE, opt: { namespaced: this.value.metadata.namespace } });
+    }
+
     if (this.value.type === WORKLOAD_TYPES.CRON_JOB) {
       hash.jobs = this.value.matchingJobs();
     }

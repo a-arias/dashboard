@@ -289,8 +289,7 @@ describe('Kontainer Drivers', { testIsolation: 'off', tags: ['@manager', '@admin
 describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () => {
   before(() => {
     cy.login();
-    // Set theme to light
-    cy.setUserPreference({ theme: 'ui-light' });
+    cy.applyDefaultTestTheme();
   });
 
   it('should display kontainer drivers list page', () => {

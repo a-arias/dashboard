@@ -135,8 +135,7 @@ describe('Machines', { testIsolation: 'off', tags: ['@manager', '@adminUser'] },
 describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () => {
   before(() => {
     cy.login();
-    // Set theme to light
-    cy.setUserPreference({ theme: 'ui-light' });
+    cy.applyDefaultTestTheme();
   });
 
   it('should display machines list page', () => {
