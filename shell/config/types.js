@@ -408,7 +408,16 @@ export const CLUSTER_REPO_TYPES = {
   SUSE_APP_COLLECTION: 'suse-application-collection'
 };
 
+/**
+ * The `generateName` prefix used when creating authentication secrets
+ * for SUSE App Collection repositories.
+ */
 export const CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME = 'clusterrepo-appco-auth-';
+
+/**
+ * The `generateName` prefix used when creating authentication secrets
+ * for standard repositories.
+ */
 export const CLUSTER_REPO_AUTH_GENERATE_NAME = 'clusterrepo-auth-';
 
 export const ZERO_TIME = '0001-01-01T00:00:00Z';

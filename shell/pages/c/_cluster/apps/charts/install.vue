@@ -396,7 +396,7 @@ export default {
       this.selectedSecret = defaultSelectedSecret;
       this.defaultGeneratedNameForImagePullSecret = `${ this.selectedSecret.name }-image-pull-secret`;
       this.generatedNameForImagePullSecret = `${ this.selectedSecret.name }-image-pull-secret-${ generateRandomAlphaString(5) }`;
-      this.appCoDataFetched = true;
+
       await this.initializeDataForNamespaceChanges();
       await this.setImagePullSecretData();
     }
@@ -452,7 +452,6 @@ export default {
       showCreateAuthSecret:                   false,
       dontUseDefaultOption:                   null,
       disabledCheckbox:                       false,
-      appCoDataFetched:                       false,
       AUTH_TYPE,
       CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME,
       stepBasic:                              {
@@ -938,7 +937,7 @@ export default {
 
     async initializeDataForNamespaceChanges() {
       // Skip the flow if the data still not fetched, it will trigger after fetching manually
-      if (this.appCoDataFetched) {
+      if (!this.$fetchState.pending) {
         try {
           this.defaultImagePullSecret = await this.$store.dispatch('cluster/find', { type: SECRET, id: `${ this.targetNamespace }/${ this.repo.spec.clientSecret.name }-image-pull-secret` });
         } catch (e) {
