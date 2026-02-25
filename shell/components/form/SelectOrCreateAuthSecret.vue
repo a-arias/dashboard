@@ -655,9 +655,9 @@ export default {
             secret.data.known_hosts = base64Encode(this.sshKnownHosts || '');
           }
 
-          const registryHost = this.imagePullSecretDockerJsonUrlConfig ? new URL(this.imagePullSecretDockerJsonUrlConfig).host : '';
+          if (this.selected === AUTH_TYPE._IMAGE_PULL_SECRET && this.imagePullSecretDockerJsonUrlConfig) {
+            const registryHost = this.imagePullSecretDockerJsonUrlConfig ? new URL(this.imagePullSecretDockerJsonUrlConfig).host : '';
 
-          if (this.selected === AUTH_TYPE._IMAGE_PULL_SECRET && registryHost) {
             const config = {
               auths: {
                 [registryHost]: {
