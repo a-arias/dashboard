@@ -6279,7 +6279,7 @@ secret:
 
 selectOrCreateAuthSecret:
   label: Authentication
-  appCoImagePullSecret: Image Pull Secret
+  imagePullSecret: Image Pull Secret
   options:
     none: None
     basic: HTTP Basic Auth

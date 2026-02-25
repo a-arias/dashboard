@@ -391,12 +391,12 @@ export const ADDRESSES = {
 export const DEFAULT_WORKSPACE = 'fleet-default';
 
 export const AUTH_TYPE = {
-  _NONE:                     '_none',
-  _BASIC:                    '_basic',
-  _SSH:                      '_ssh',
-  _S3:                       '_S3',
-  _RKE:                      '_RKE',
-  _APP_CO_IMAGE_PULL_SECRET: '_IPS',
+  _NONE:              '_none',
+  _BASIC:             '_basic',
+  _SSH:               '_ssh',
+  _S3:                '_S3',
+  _RKE:               '_RKE',
+  _IMAGE_PULL_SECRET: '_IPS',
 };
 
 export const LOCAL_CLUSTER = 'local';

@@ -1515,7 +1515,8 @@ export default {
           data: {}
         });
 
-        const config = { auths: { 'dp.apps.rancher.io': this.selectedSecret?.decodedData } };
+        const registryHost = this.repo?.spec?.url ? new URL(this.repo.spec.url).host : '';
+        const config = { auths: { [registryHost]: this.selectedSecret?.decodedData } };
         const json = JSON.stringify(config);
 
         secret.setData('.dockerconfigjson', json);
@@ -1705,7 +1706,7 @@ export default {
                 data-testid="clusterrepo-auth-secret"
                 :register-before-hook="registerBeforeHook"
                 :namespace="value.namespace"
-                :pre-select="{ selected: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET }"
+                :pre-select="{ selected: AUTH_TYPE._IMAGE_PULL_SECRET }"
                 :limit-to-namespace="true"
                 :in-store="inStore"
                 :allow-ssh="false"
@@ -1715,6 +1716,7 @@ export default {
                 :cache-secrets="true"
                 :fixed-image-pull-secret="true"
                 :client-generated-name="generatedNameForImagePullSecret"
+                :image-pull-secret-docker-json-url-config="repo?.spec?.url"
               />
             </div>
             <Banner

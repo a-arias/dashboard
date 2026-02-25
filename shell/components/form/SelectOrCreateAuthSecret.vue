@@ -180,6 +180,13 @@ export default {
       type:    Boolean,
       default: false,
     },
+    /**
+     * Whenever the fixedImagePullSecret is setup the dockerJsonUrlConfig needs to be passed that will be used to create the DockerJsonConfig file
+     */
+    imagePullSecretDockerJsonUrlConfig: {
+      type:    String,
+      default: '',
+    },
 
     /**
      * Specific property to change labels if it is Github.com repository
@@ -245,7 +252,7 @@ export default {
 
       SSH:               AUTH_TYPE._SSH,
       BASIC:             AUTH_TYPE._BASIC,
-      IMAGE_PULL_SECRET: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET,
+      IMAGE_PULL_SECRET: AUTH_TYPE._IMAGE_PULL_SECRET,
       S3:                AUTH_TYPE._S3,
       RKE:               AUTH_TYPE._RKE,
     };
@@ -412,7 +419,7 @@ export default {
       if ( this.fixedImagePullSecret ) {
         out.unshift({
           label: this.t('selectOrCreateAuthSecret.createImagePullSecret'),
-          value: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET,
+          value: AUTH_TYPE._IMAGE_PULL_SECRET,
           kind:  'highlighted'
         });
       }
@@ -429,7 +436,7 @@ export default {
         return '';
       }
 
-      if ( this.selected === AUTH_TYPE._SSH || this.selected === AUTH_TYPE._BASIC || this.selected === AUTH_TYPE._RKE || this.selected === AUTH_TYPE._S3 || this.selected === AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET ) {
+      if ( this.selected === AUTH_TYPE._SSH || this.selected === AUTH_TYPE._BASIC || this.selected === AUTH_TYPE._RKE || this.selected === AUTH_TYPE._S3 || this.selected === AUTH_TYPE._IMAGE_PULL_SECRET ) {
         return 'col span-4';
       }
 
@@ -534,7 +541,7 @@ export default {
     },
 
     updateKeyVal() {
-      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET].includes(this.selected) ) {
+      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._IMAGE_PULL_SECRET].includes(this.selected) ) {
         this.privateKey = '';
         this.publicKey = '';
         this.sshKnownHosts = '';
@@ -554,7 +561,7 @@ export default {
     },
 
     update() {
-      if ( (!this.selected || [AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._NONE, AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET].includes(this.selected))) {
+      if ( (!this.selected || [AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._NONE, AUTH_TYPE._IMAGE_PULL_SECRET].includes(this.selected))) {
         this.$emit('update:value', null);
       } else if ( this.selected.includes(':')) {
         // Cloud creds
@@ -578,7 +585,7 @@ export default {
     },
 
     async doCreate() {
-      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET].includes(this.selected) || this.delegateCreateToParent ) {
+      if ( ![AUTH_TYPE._SSH, AUTH_TYPE._BASIC, AUTH_TYPE._S3, AUTH_TYPE._RKE, AUTH_TYPE._IMAGE_PULL_SECRET].includes(this.selected) || this.delegateCreateToParent ) {
         return;
       }
 
@@ -619,7 +626,7 @@ export default {
           publicField = 'username';
           privateField = 'password';
           break;
-        case AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET:
+        case AUTH_TYPE._IMAGE_PULL_SECRET:
           type = SECRET_TYPES.DOCKER_JSON;
           publicField = 'username';
           privateField = 'password';
@@ -648,10 +655,12 @@ export default {
             secret.data.known_hosts = base64Encode(this.sshKnownHosts || '');
           }
 
-          if (this.selected === AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET) {
+          const registryHost = this.imagePullSecretDockerJsonUrlConfig ? new URL(this.imagePullSecretDockerJsonUrlConfig).host : '';
+
+          if (this.selected === AUTH_TYPE._IMAGE_PULL_SECRET && registryHost) {
             const config = {
               auths: {
-                'dp.apps.rancher.io': {
+                [registryHost]: {
                   [publicField]:  this.publicKey,
                   [privateField]: this.privateKey,
                 }
@@ -689,7 +698,7 @@ export default {
           v-model:value="selected"
           data-testid="auth-secret-select"
           :mode="mode"
-          :label-key="fixedImagePullSecret ? 'selectOrCreateAuthSecret.appCoImagePullSecret' : labelKey"
+          :label-key="fixedImagePullSecret ? 'selectOrCreateAuthSecret.imagePullSecret' : labelKey"
           :loading="$fetchState.pending"
           :options="options"
           :selectable="option => !option.disabled"
