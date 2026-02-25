@@ -334,83 +334,21 @@ export default {
       }
 
       if ( !this.limitToNamespace ) {
-        // When filtering for appCo, split secrets into two groups before adding namespace headers
-        if (this.fixedHttpBasicAuth && this.filterBasicAuth) {
-          const appCoSecrets = out.filter((o) => o.label?.search(this.filterBasicAuth) === 0);
-          const otherSecrets = out.filter((o) => o.label?.search(this.filterBasicAuth) !== 0);
+        out = sortBy(out, 'group');
+        if ( out.length ) {
+          let lastGroup = '';
 
-          out = [];
+          for ( let i = 0 ; i < out.length ; i++ ) {
+            if ( out[i].group !== lastGroup ) {
+              lastGroup = out[i].group;
 
-          // Build the SUSE App Collection group with namespace sub-headers
-          if (appCoSecrets.length) {
-            const sortedAppCo = sortBy(appCoSecrets, 'group');
+              insertAt(out, i, {
+                kind:     'title',
+                label:    this.t('selectOrCreateAuthSecret.namespaceGroup', { name: lastGroup }),
+                disabled: true,
+              });
 
-            out.push({
-              kind:     'title',
-              label:    this.t('selectOrCreateAuthSecret.suseAppCollectionSecrets'),
-              disabled: true,
-            });
-
-            let lastGroup = '';
-
-            for (const s of sortedAppCo) {
-              if (s.group !== lastGroup) {
-                lastGroup = s.group;
-                out.push({
-                  kind:     'title',
-                  label:    this.t('selectOrCreateAuthSecret.namespaceGroup', { name: lastGroup }),
-                  disabled: true,
-                });
-              }
-              out.push(s);
-            }
-          }
-
-          // Build the remaining secrets group with namespace sub-headers
-          if (otherSecrets.length) {
-            out.push({
-              label:    'divider',
-              disabled: true,
-              kind:     'divider',
-            });
-            out.push({
-              kind:     'title',
-              label:    this.t('selectOrCreateAuthSecret.regularSecrets'),
-              disabled: true,
-            });
-
-            const sortedOther = sortBy(otherSecrets, 'group');
-            let lastGroup = '';
-
-            for (const s of sortedOther) {
-              if (s.group !== lastGroup) {
-                lastGroup = s.group;
-                out.push({
-                  kind:     'title',
-                  label:    this.t('selectOrCreateAuthSecret.namespaceGroup', { name: lastGroup }),
-                  disabled: true,
-                });
-              }
-              out.push(s);
-            }
-          }
-        } else {
-          out = sortBy(out, 'group');
-          if ( out.length ) {
-            let lastGroup = '';
-
-            for ( let i = 0 ; i < out.length ; i++ ) {
-              if ( out[i].group !== lastGroup ) {
-                lastGroup = out[i].group;
-
-                insertAt(out, i, {
-                  kind:     'title',
-                  label:    this.t('selectOrCreateAuthSecret.namespaceGroup', { name: lastGroup }),
-                  disabled: true,
-                });
-
-                i++;
-              }
+              i++;
             }
           }
         }
@@ -477,6 +415,10 @@ export default {
           value: AUTH_TYPE._APP_CO_IMAGE_PULL_SECRET,
           kind:  'highlighted'
         });
+      }
+
+      if (this.fixedHttpBasicAuth) {
+        out = out.filter((o) => o.label.search(this.filterBasicAuth) === 0 || ['title', 'divider'].includes(o.kind) || o.value === AUTH_TYPE._BASIC);
       }
 
       return out;

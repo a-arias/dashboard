@@ -410,7 +410,6 @@ export const CLUSTER_REPO_TYPES = {
 
 export const CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME = 'clusterrepo-appco-auth-';
 export const CLUSTER_REPO_AUTH_GENERATE_NAME = 'clusterrepo-auth-';
-export const APP_CO_OCI_URL = 'oci://dp.apps.rancher.io/charts';
 
 export const ZERO_TIME = '0001-01-01T00:00:00Z';
 

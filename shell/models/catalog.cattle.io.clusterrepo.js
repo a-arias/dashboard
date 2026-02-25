@@ -1,9 +1,8 @@
 import { parse } from '@shell/utils/url';
 import { CATALOG } from '@shell/config/labels-annotations';
 import { insertAt } from '@shell/utils/array';
-import { APP_CO_OCI_URL, CATALOG as CATALOG_TYPE } from '@shell/config/types';
+import { CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME, CATALOG as CATALOG_TYPE } from '@shell/config/types';
 import { colorForState, stateDisplay } from '@shell/plugins/dashboard-store/resource-class';
-import { getVersionData } from '@shell/config/version';
 
 import SteveModel from '@shell/plugins/steve/steve-class';
 
@@ -144,12 +143,17 @@ export default class ClusterRepo extends SteveModel {
     return this.metadata?.state?.name === 'active';
   }
 
-  get isSuseAppCollectionAvailable() {
-    return this.spec?.url?.startsWith(APP_CO_OCI_URL) && getVersionData()?.RancherPrime === 'true';
+  get isSuseAppCollectionFromUI() {
+    return this.metadata?.annotations?.[CATALOG.SUSE_APP_COLLECTION];
+  }
+
+  get isSuseAppCollection() {
+    // Check annotation set by the UI or if the URL points to the SUSE App Collection registry
+    return this.isSuseAppCollectionFromUI || this.spec?.url?.startsWith('oci://dp.apps.rancher.io/charts');
   }
 
   get typeDisplay() {
-    if (this.isSuseAppCollectionAvailable) {
+    if (this.isSuseAppCollectionFromUI) {
       return 'SUSE AppCo';
     }
     if ( this.spec.gitRepo ) {
@@ -231,8 +235,8 @@ export default class ClusterRepo extends SteveModel {
   }
 
   async save() {
-    // Add annotation only if the type is SUSE_APP_COLLECTION and created from UI
-    if (this.isSuseAppCollectionAvailable) {
+    // Add annotation only if the type is SUSE_APP_COLLECTION
+    if (this.spec.clientSecret?.name?.search(CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME) === 0) {
       if (!this.metadata.annotations) {
         this.metadata.annotations = {};
       }

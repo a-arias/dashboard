@@ -9,8 +9,7 @@ import Banner from '@components/Banner/Banner.vue';
 import { Checkbox } from '@components/Form/Checkbox';
 import {
   MANAGEMENT, NAMESPACE, CLUSTER_REPO_TYPES, AUTH_TYPE,
-  CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME, CLUSTER_REPO_AUTH_GENERATE_NAME,
-  APP_CO_OCI_URL
+  CLUSTER_REPO_APPCO_AUTH_GENERATE_NAME, CLUSTER_REPO_AUTH_GENERATE_NAME
 } from '@shell/config/types';
 import UnitInput from '@shell/components/form/UnitInput.vue';
 import { getVersionData } from '@shell/config/version';
@@ -44,7 +43,7 @@ export default {
     if (!!this.value.spec.gitRepo) {
       clusterRepoType = CLUSTER_REPO_TYPES.GIT_REPO;
     } else if (this.value.isOciType) {
-      clusterRepoType = this.value?.isSuseAppCollectionAvailable ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL;
+      clusterRepoType = this.value?.isSuseAppCollectionFromUI ? CLUSTER_REPO_TYPES.SUSE_APP_COLLECTION : CLUSTER_REPO_TYPES.OCI_URL;
     } else {
       clusterRepoType = CLUSTER_REPO_TYPES.HELM_URL;
     }
@@ -152,7 +151,7 @@ export default {
         this.resetOciValues();
         this.resetGitRepoValues();
         this.resetHelmValues();
-        this.value.spec['url'] = APP_CO_OCI_URL;
+        this.value.spec['url'] = 'oci://dp.apps.rancher.io/charts';
         this.resetNameAndDescription(oldClusterRepoType, this.clusterRepoType);
         break;
       }
