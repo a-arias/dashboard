@@ -67,7 +67,7 @@ export default {
     flex-direction: column;
   }
   .targets-list-list {
-    overflow-y: scroll;
+    overflow-y: auto;
   }
   .link-main{
     word-spacing: 22px;
