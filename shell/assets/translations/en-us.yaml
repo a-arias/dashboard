@@ -6235,6 +6235,13 @@ secret:
     warnings:
       expiring: "{count} {count, plural, =1 {Certificate expires soon} other {Certificates expire soon}}"
       expired: "{count} {count, plural, =1 {Certificate has expired} other {Certificates have expired}}"
+  projectScoped:
+    tooltip:
+      source: "Project Scoped Secret (for Project \"{project}\" in cluster \"{cluster}\")"
+      copy: "Managed via Project Scoped Secret (\"{secret}\" in Project \"{project}\")"
+    origin:
+      source: "Project Secret"
+      copy: "Via Project Secret"
   data: Data
   registry:
     address: Registry
@@ -7032,10 +7039,8 @@ tableHeaders:
   selector: Selector
   secrets: Secrets
   secret:
-    project-clone: Created by Project Secret
-    project-clone-tooltip: Has a Project Scoped Secret created this Secret in this Namespace
-    project-scoped: Project Secret
-    project-scoped-tooltip: This Project Scoped Secret will create matching Secrets in the Namespaces it contains
+    origin: Origin
+    originTooltip: "Shows if a secret has been created or managed via another Project Scoped Secret. Read the Project Scoped Secret documentation to learn more about this Rancher concept"
   schedule: Schedule
   service: Service
   serviceAccounts: Service Accounts
