@@ -71,9 +71,9 @@ export default {
   }
   .link-main{
     word-spacing: 22px;
+    line-height: 17px; // To fit the icon size and make sure it doesnt resize
   }
   .link-icon {
-    position: absolute;
     margin-left: -14px; // Remove the space of the icon to make it float to accomodate the underline
     display: none; // Make the icon disappear by default
   }
