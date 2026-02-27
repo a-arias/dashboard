@@ -9101,6 +9101,13 @@ resourceQuota:
     namespace: 'This Namespace:'
     available: 'Available:'
     max: 'Total:'
+  ariaLabel:
+    grid: Resource Quotas
+    resourceType: 'Resource Type, row {row}'
+    resourceIdentifier: 'Resource Identifier, row {row}'
+    projectLimit: 'Project Limit, row {row}'
+    namespaceDefaultLimit: 'Namespace Default Limit, row {row}'
+    remove: 'Remove {identifier}'
 customLinks:
   displayTitle: Links
   label: Home Links
