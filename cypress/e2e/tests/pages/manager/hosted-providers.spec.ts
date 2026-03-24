@@ -195,6 +195,9 @@ describe('Hosted Providers', { testIsolation: 'off', tags: ['@manager', '@adminU
     providersPage.list().resourceTable().sortableTable().rowSelectCtlWithName(GKE)
       .isChecked();
 
+    // Ensure no loading indicator is visible after interactions
+    providersPage.list().resourceTable().sortableTable()
+      .checkLoadingIndicatorNotVisible();
     cy.intercept('PUT', `v1/management.cattle.io.settings/kev2-operators`).as('updateProviders');
 
     providersPage.list().activate().click();
