@@ -79,7 +79,7 @@ describe('Cluster Manager', { testIsolation: 'off', tags: ['@manager', '@adminUs
     clusterList.goTo();
     clusterList.checkIsCurrentPage();
     clusterList.createCluster();
-    clusterCreatePage.gridElementExistanceByName('Azure AKS', 'not.exist');
+    clusterCreatePage.gridElementExistenceByName('Azure AKS', 'not.exist');
 
     // re-enable the AKS kontainer driver
     HostedProvidersPagePo.navTo();
@@ -93,7 +93,7 @@ describe('Cluster Manager', { testIsolation: 'off', tags: ['@manager', '@adminUs
     clusterList.goTo();
     clusterList.checkIsCurrentPage();
     clusterList.createCluster();
-    clusterCreatePage.gridElementExistanceByName('Azure AKS', 'exist');
+    clusterCreatePage.gridElementExistenceByName('Azure AKS', 'exist');
   });
 
   describe('RKE2 providers', () => {
@@ -829,6 +829,7 @@ describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () =>
     cy.login();
     cy.applyDefaultTestTheme();
   });
+
   it('should display cluster manager page', () => {
     const clusterList = new ClusterManagerListPagePo();
 
@@ -843,5 +844,9 @@ describe('Visual Testing', { tags: ['@percy', '@manager', '@adminUser'] }, () =>
     cy.hideElementBySelector('[data-testid="nav_header_showUserMenu"]', 'td.col-live-date span.live-date');
     // takes percy snapshot.
     cy.percySnapshot('cluster manager list page');
+  });
+
+  after(() => {
+    cy.restoreProductDefaultTestTheme();
   });
 });
