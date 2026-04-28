@@ -127,7 +127,7 @@ describe('Fleet Clusters - bundle manifests are deployed from the BundleDeployme
     fleetClusterDetailsPage.clusterTabs().clickTabWithSelector('[data-testid="btn-applications"]');
 
     // check cluster labels
-    fleetClusterDetailsPage.clusterLabels().contains('foo: bar').scrollIntoView().should('be.visible');
+    fleetClusterDetailsPage.hasClusterLabel('foo', 'bar').should('be.visible');
 
     // check state
     fleetClusterDetailsPage.appBundlesList().resourceTableDetails(gitRepo, 1).contains('Active');
