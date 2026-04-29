@@ -65,6 +65,12 @@ export class FleetClusterDetailsPo extends BaseDetailPagePo {
   addAppButton() {
     return this.self().get('.btn').contains('Create App Bundle');
   }
+
+  hasClusterLabel(key: string, value: string) {
+    return this.self()
+      .find('.tag-data')
+      .contains(`${ key }: ${ value }`);
+  }
 }
 
 export class FleetClusterEditPo extends BaseDetailPagePo {
