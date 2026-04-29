@@ -155,7 +155,7 @@ export default class SortableTablePo extends ComponentPo {
   }
 
   subRows() {
-    return this.self().find('tbody tr.sub-row');
+    return this.self().find('tbody tr.labels-row');
   }
 
   rowElementLink(rowIndex: number, columnIndex: number) {
