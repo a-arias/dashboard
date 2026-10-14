@@ -27,7 +27,8 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
 
   let clusterName: string;
   let removedClusterName: string;
-  let mgmtClusterNameValue: string;
+  let clusterMgmtClusterNameValue: string;
+  let removedClusterMgmtClusterNameValue: string;
 
   before(() => {
     cy.login();
@@ -44,7 +45,7 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     const retryIndex = getRetryIndex(this);
 
     clusterName = createClusterTestName('name-annotation', retryIndex);
-    mgmtClusterNameValue = createMgmtClusterNameValue(retryIndex);
+    clusterMgmtClusterNameValue = createMgmtClusterNameValue(retryIndex);
 
     cy.intercept('POST', `/v1/${ type }s`).as('createRequest');
 
@@ -64,7 +65,7 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     // Add the management-cluster-name annotation
     labelsAnnotations.annotations().addRow();
     labelsAnnotations.annotations().setKeyAtIndex(MANAGEMENT_CLUSTER_NAME_ANNOTATION, 0);
-    labelsAnnotations.annotations().setValueAtIndex(mgmtClusterNameValue, 0);
+    labelsAnnotations.annotations().setValueAtIndex(clusterMgmtClusterNameValue, 0);
 
     // Verify NO error icon (icon-warning) is shown for the management-cluster-name annotation row
     labelsAnnotations.annotations().keyWarningIcon(0).should('not.exist');
@@ -86,13 +87,13 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
 
       // Request body should include the management-cluster-name annotation
       expect(intercept.request.body.metadata.annotations).to.have.property(
-        MANAGEMENT_CLUSTER_NAME_ANNOTATION, mgmtClusterNameValue
+        MANAGEMENT_CLUSTER_NAME_ANNOTATION, clusterMgmtClusterNameValue
       );
 
 
       // Response should also include the annotation
       expect(intercept.response?.body.metadata.annotations).to.have.property(
-        MANAGEMENT_CLUSTER_NAME_ANNOTATION, mgmtClusterNameValue
+        MANAGEMENT_CLUSTER_NAME_ANNOTATION, clusterMgmtClusterNameValue
       );
     });
   });
@@ -101,7 +102,7 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     const retryIndex = getRetryIndex(this);
 
     removedClusterName = createClusterTestName('name-annotation-removed', retryIndex);
-    mgmtClusterNameValue = createMgmtClusterNameValue(retryIndex);
+    removedClusterMgmtClusterNameValue = createMgmtClusterNameValue(retryIndex);
 
     cy.intercept('POST', `/v1/${ type }s`).as('createRemovedRequest');
 
@@ -121,7 +122,7 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     // Add the management-cluster-name annotation
     labelsAnnotations.annotations().addRow();
     labelsAnnotations.annotations().setKeyAtIndex(MANAGEMENT_CLUSTER_NAME_ANNOTATION, 0);
-    labelsAnnotations.annotations().setValueAtIndex(mgmtClusterNameValue, 0);
+    labelsAnnotations.annotations().setValueAtIndex(removedClusterMgmtClusterNameValue, 0);
 
     // Remove the annotation row
     labelsAnnotations.annotations().removeButton(0).find('button').click();
@@ -176,7 +177,7 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
 
       // The original annotation value should be preserved
       expect(intercept.request.body.metadata.annotations).to.have.property(
-        MANAGEMENT_CLUSTER_NAME_ANNOTATION, mgmtClusterNameValue
+        MANAGEMENT_CLUSTER_NAME_ANNOTATION, clusterMgmtClusterNameValue
       );
     });
   });
@@ -189,7 +190,7 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
 
     // The annotations section in the masthead metadata area should contain the annotation
     cy.get('[data-testid="resource-detail-annotations"]').should('contain.text', MANAGEMENT_CLUSTER_NAME_ANNOTATION);
-    cy.get('[data-testid="resource-detail-annotations"]').should('contain.text', mgmtClusterNameValue);
+    cy.get('[data-testid="resource-detail-annotations"]').should('contain.text', clusterMgmtClusterNameValue);
   });
 
   it('shows the management cluster named with the annotation value in related resources', () => {
@@ -202,6 +203,6 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     detailPage.selectTab(tabbedPo, '[data-testid="btn-related"]');
 
     // The management.cattle.io.cluster resource should be named with the annotation value
-    cy.get('.tab-container').should('contain.text', mgmtClusterNameValue);
+    cy.get('.tab-container').should('contain.text', clusterMgmtClusterNameValue);
   });
 });
