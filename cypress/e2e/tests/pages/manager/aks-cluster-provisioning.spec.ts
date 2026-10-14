@@ -5,6 +5,7 @@ import ClusterManagerCreateAKSPagePo from '@/cypress/e2e/po/edit/provisioning.ca
 import * as aksDefaultSettings from '@/cypress/e2e/blueprints/cluster_management/aks-default-settings';
 import RadioInputPo from '~/cypress/e2e/po/components/radio-input.po';
 import { USERS_BASE_URL } from '@/cypress/support/utils/api-endpoints';
+import { retrySafeResourceName } from '@/cypress/support/utils/retry-resource-name';
 
 /******
  *  Running this test will delete all Amazon cloud credentials from the target cluster
@@ -94,10 +95,14 @@ describe('Create AKS cluster', { testIsolation: false, tags: ['@manager', '@admi
     createAKSClusterPage.waitForPage('type=aks&rkeType=rke2');
   });
 
-  beforeEach( () => {
+  beforeEach(function() {
     cy.viewport(1440, 900);
-    cy.createE2EResourceName('akscluster').as('aksClusterName');
-    cy.createE2EResourceName('akscluster2').as('aksClusterName2');
+    cy.createE2EResourceName('akscluster').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('aksClusterName');
+    });
+    cy.createE2EResourceName('akscluster2').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('aksClusterName2');
+    });
   });
 
   it('can create an Azure AKS cluster by just filling in the mandatory fields', function() {

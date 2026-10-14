@@ -11,6 +11,7 @@ import { EXTRA_LONG_TIMEOUT_OPT, LONG_TIMEOUT_OPT, MEDIUM_TIMEOUT_OPT, VERY_LONG
 import { FeatureFlagsPagePo } from '@/cypress/e2e/po/pages/global-settings/feature-flags.po';
 import LoadingPo from '@/cypress/e2e/po/components/loading.po';
 import { qase } from '@/cypress/support/qase';
+import { retrySafeResourceName } from '@/cypress/support/utils/retry-resource-name';
 import ExportModalPo from '@/cypress/e2e/po/prompts/exportModal.po';
 
 const fleetClusterListPage = new FleetClusterListPagePo();
@@ -28,24 +29,17 @@ describe('Fleet Clusters - bundle manifests are deployed from the BundleDeployme
   const region = 'us-west-1';
   const namespace = 'fleet-default';
   let removeCluster = false;
-  let removeGitRepo = false;
-  let removeWorkspace = false;
   let disableFeature = false;
   let clusterName = '';
   let cloudcredentialId = '';
   let gitRepo = '';
   let customWorkspace = '';
+  let gitReposToRemove: string[] = [];
+  const workspacesToRemove: string[] = [];
   const feature = 'provisioningv2-fleet-workspace-back-population';
 
   before(() => {
     cy.login();
-    cy.createE2EResourceName('fleet-workspace').then((name) => {
-      customWorkspace = name;
-    });
-
-    cy.createE2EResourceName('git-repo').then((name) => {
-      gitRepo = name;
-    });
 
     cy.createE2EResourceName('fleetrke2cluster').then((name) => {
       clusterName = name;
@@ -83,14 +77,16 @@ describe('Fleet Clusters - bundle manifests are deployed from the BundleDeployme
     cy.updateNamespaceFilter('local', 'none', '{"local":["all://user"]}');
   });
 
-  qase(9691, it('data is populated in fleet cluster list and detail view', () => {
+  qase(9691, it('data is populated in fleet cluster list and detail view', function() {
     ClusterManagerListPagePo.navTo();
     clusterList.waitForPage();
     clusterList.list().state(clusterName).contains('Active', VERY_LONG_TIMEOUT_OPT);
 
-    // create gitrepo
-    cy.createRancherResource('v1', 'fleet.cattle.io.gitrepos', gitRepoTargetAllClustersRequest(namespace, gitRepo, gitRepoUrl, branch, paths)).then(() => {
-      removeGitRepo = true;
+    cy.createE2EResourceName('git-repo').then((name) => {
+      gitRepo = retrySafeResourceName(name, this);
+      gitReposToRemove.push(gitRepo);
+
+      return cy.createRancherResource('v1', 'fleet.cattle.io.gitrepos', gitRepoTargetAllClustersRequest(namespace, gitRepo, gitRepoUrl, branch, paths));
     });
 
     // go to fleet gitrepo and wait until git repo is in active state
@@ -267,21 +263,25 @@ describe('Fleet Clusters - bundle manifests are deployed from the BundleDeployme
     });
   }));
 
-  qase(9698, it('can assign cluster to different fleet workspaces', () => {
-    // create workspace
-    cy.createRancherResource('v3', 'fleetworkspaces', `{"type":"fleetworkspace","name":"${ customWorkspace }","annotations":{},"labels":{}}`).then(() => {
-      removeWorkspace = true;
+  qase(9698, it('can assign cluster to different fleet workspaces', function() {
+    cy.createE2EResourceName('fleet-workspace').then((name) => {
+      customWorkspace = retrySafeResourceName(name, this);
+      workspacesToRemove.push(customWorkspace);
+
+      return cy.createRancherResource('v3', 'fleetworkspaces', `{"type":"fleetworkspace","name":"${ customWorkspace }","annotations":{},"labels":{}}`);
     });
 
     // enable feature: provisioningv2-fleet-workspace-back-population
     FeatureFlagsPagePo.navTo();
     featureFlagsPage.waitForPage();
-    featureFlagsPage.list().details(feature, 0).should('include.text', 'Disabled');
-    featureFlagsPage.list().clickRowActionMenuItem(feature, 'Activate');
-    featureFlagsPage.clickCardActionButtonAndWait('Activate', feature, true, { waitForModal: true, waitForRequest: true });
-    featureFlagsPage.list().details(feature, 0).should('include.text', 'Active').then(() => {
-      disableFeature = true;
+    featureFlagsPage.list().details(feature, 0).invoke('text').then((statusText) => {
+      if (statusText.includes('Disabled')) {
+        featureFlagsPage.list().clickRowActionMenuItem(feature, 'Activate');
+        featureFlagsPage.clickCardActionButtonAndWait('Activate', feature, true, { waitForModal: true, waitForRequest: true });
+        disableFeature = true;
+      }
     });
+    featureFlagsPage.list().details(feature, 0).should('include.text', 'Active');
 
     const loadingPo = new LoadingPo('.loading-indicator');
 
@@ -334,7 +334,7 @@ describe('Fleet Clusters - bundle manifests are deployed from the BundleDeployme
 
       // delete gitrepo
       cy.deleteRancherResource('v1', `fleet.cattle.io.gitrepos/${ namespace }`, gitRepo).then(() => {
-        removeGitRepo = false;
+        gitReposToRemove = gitReposToRemove.filter((name) => name !== gitRepo);
       });
 
       deploymentsList.goTo();
@@ -365,14 +365,14 @@ describe('Fleet Clusters - bundle manifests are deployed from the BundleDeployme
       // delete cluster
       cy.deleteRancherResource('v1', `provisioning.cattle.io.clusters/${ namespace }`, clusterName, false);
     }
-    if (removeGitRepo) {
-      // delete gitrepo
-      cy.deleteRancherResource('v1', `fleet.cattle.io.gitrepos/${ namespace }`, gitRepo, false);
-    }
-    if (removeWorkspace) {
-      // delete workspace
-      cy.deleteRancherResource('v3', 'fleetWorkspaces', customWorkspace, false);
-    }
+
+    gitReposToRemove.forEach((name) => {
+      cy.deleteRancherResource('v1', `fleet.cattle.io.gitrepos/${ namespace }`, name, false);
+    });
+
+    workspacesToRemove.forEach((name) => {
+      cy.deleteRancherResource('v3', 'fleetWorkspaces', name, false);
+    });
 
     if (disableFeature) {
       // disable feature: provisioningv2-fleet-workspace-back-population

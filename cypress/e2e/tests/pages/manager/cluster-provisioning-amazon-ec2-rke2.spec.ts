@@ -10,6 +10,7 @@ import TabbedPo from '@/cypress/e2e/po/components/tabbed.po';
 import { LONG_TIMEOUT_OPT, MEDIUM_TIMEOUT_OPT, VERY_LONG_TIMEOUT_OPT } from '@/cypress/support/utils/timeouts';
 import { USERS_BASE_URL } from '@/cypress/support/utils/api-endpoints';
 import { promptModal } from '@/cypress/e2e/po/prompts/shared/modalInstances.po';
+import { retrySafeResourceName } from '@/cypress/support/utils/retry-resource-name';
 import describeSubnetsResponse from '@/cypress/e2e/blueprints/manager/describe-subnets-response';
 import describeVpcsResponse from '@/cypress/e2e/blueprints/manager/describe-vpcs-response';
 
@@ -45,11 +46,16 @@ describe('Deploy RKE2 cluster using node driver on Amazon EC2', { tags: ['@manag
     });
   });
 
-  beforeEach(() => {
+  beforeEach(function() {
     cy.login();
     HomePagePo.goTo();
-    cy.createE2EResourceName('rke2ec2cluster').as('rke2Ec2ClusterName');
-    cy.createE2EResourceName('ec2cloudcredential').as('ec2CloudCredentialName');
+
+    cy.createE2EResourceName('rke2ec2cluster').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('rke2Ec2ClusterName');
+    });
+    cy.createE2EResourceName('ec2cloudcredential').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('ec2CloudCredentialName');
+    });
   });
 
   qase(5593, it('can create an RKE2 cluster using Amazon cloud provider', function() {

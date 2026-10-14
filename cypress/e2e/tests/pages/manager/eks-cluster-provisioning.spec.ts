@@ -5,6 +5,7 @@ import ClusterManagerCreateEKSPagePo from '@/cypress/e2e/po/edit/provisioning.ca
 import TabbedPo from '@/cypress/e2e/po/components/tabbed.po';
 import * as eksDefaultSettings from '@/cypress/e2e/blueprints/cluster_management/eks-default-settings';
 import RadioGroupInputPo from '~/cypress/e2e/po/components/radio-group-input.po';
+import { retrySafeResourceName } from '@/cypress/support/utils/retry-resource-name';
 
 /******
  *  Running this test will delete all Amazon cloud credentials from the target cluster
@@ -83,9 +84,13 @@ describe('Create EKS cluster', { testIsolation: false, tags: ['@manager', '@admi
     createEKSClusterPage.waitForPage('type=eks&rkeType=rke2');
   });
 
-  beforeEach( () => {
-    cy.createE2EResourceName('ekscluster').as('eksClusterName');
-    cy.createE2EResourceName('ekscluster2').as('eksClusterName2');
+  beforeEach(function() {
+    cy.createE2EResourceName('ekscluster').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('eksClusterName');
+    });
+    cy.createE2EResourceName('ekscluster2').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('eksClusterName2');
+    });
   });
 
   it('can create an Amazon EKS cluster by just filling in the mandatory fields', function() {

@@ -5,19 +5,20 @@ import ClusterManagerEditRke2CustomPagePo from '@/cypress/e2e/po/edit/provisioni
 import LabelsAnnotationsPo from '@/cypress/e2e/po/components/labels-annotations.po';
 import TabbedPo from '@/cypress/e2e/po/components/tabbed.po';
 import { LONG_TIMEOUT_OPT, MEDIUM_TIMEOUT_OPT } from '@/cypress/support/utils/timeouts';
+import { getRetryIndex } from '@/cypress/support/utils/retry-resource-name';
 
 const MANAGEMENT_CLUSTER_NAME_ANNOTATION = 'provisioning.cattle.io/management-cluster-name';
 const OTHER_CATTLE_ANNOTATION = 'some.cattle.io/other-annotation';
 
 // The webhook only accepts a management cluster name of the form `c-m-` plus 8 lowercase letters or
-// digits, and rejects a name another cluster already uses, so generate a valid, unique one per run.
-const mgmtClusterNameValue = `c-m-${ Date.now().toString(36).slice(-8).padStart(8, '0') }`;
+// digits, and rejects a name another cluster already uses, so generate a valid, unique one per attempt.
 const otherAnnotationValue = 'some-value';
 
 const namespace = 'fleet-default';
 const type = 'provisioning.cattle.io.cluster';
 
-const createClusterTestName = (suffix: string) => `e2e-test-${ +new Date() }-${ suffix }`;
+const createClusterTestName = (suffix: string, retryIndex = 0) => `e2e-test-${ +new Date() }-r${ retryIndex }-${ suffix }`;
+const createMgmtClusterNameValue = (retryIndex = 0) => `c-m-${ (Date.now() + retryIndex).toString(36).slice(-8).padStart(8, '0') }`;
 
 describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@manager', '@adminUser'] }, () => {
   const clusterList = new ClusterManagerListPagePo();
@@ -26,11 +27,10 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
 
   let clusterName: string;
   let removedClusterName: string;
+  let mgmtClusterNameValue: string;
 
   before(() => {
     cy.login();
-    clusterName = createClusterTestName('name-annotation');
-    removedClusterName = createClusterTestName('name-annotation-removed');
   });
 
   after(() => {
@@ -40,7 +40,12 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     });
   });
 
-  it('can set the management-cluster-name annotation during creation without an error icon', () => {
+  it('can set the management-cluster-name annotation during creation without an error icon', function() {
+    const retryIndex = getRetryIndex(this);
+
+    clusterName = createClusterTestName('name-annotation', retryIndex);
+    mgmtClusterNameValue = createMgmtClusterNameValue(retryIndex);
+
     cy.intercept('POST', `/v1/${ type }s`).as('createRequest');
 
     clusterList.goTo();
@@ -92,7 +97,12 @@ describe('Management Cluster Name Annotation', { testIsolation: false, tags: ['@
     });
   });
 
-  it('does not include the annotation in the request when it is removed before creation', () => {
+  it('does not include the annotation in the request when it is removed before creation', function() {
+    const retryIndex = getRetryIndex(this);
+
+    removedClusterName = createClusterTestName('name-annotation-removed', retryIndex);
+    mgmtClusterNameValue = createMgmtClusterNameValue(retryIndex);
+
     cy.intercept('POST', `/v1/${ type }s`).as('createRemovedRequest');
 
     clusterList.goTo();

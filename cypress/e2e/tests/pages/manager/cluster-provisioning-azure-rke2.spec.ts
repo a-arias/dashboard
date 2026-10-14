@@ -7,6 +7,7 @@ import LoadingPo from '@/cypress/e2e/po/components/loading.po';
 import TabbedPo from '@/cypress/e2e/po/components/tabbed.po';
 import { VERY_LONG_TIMEOUT_OPT } from '@/cypress/support/utils/timeouts';
 import { qase } from '@/cypress/support/qase';
+import { retrySafeResourceName } from '@/cypress/support/utils/retry-resource-name';
 
 // will only run this in jenkins pipeline where cloud credentials are stored
 describe('Deploy RKE2 cluster using node driver on Azure', { testIsolation: false, tags: ['@manager', '@adminUser', '@standardUser', '@jenkins', '@provisioning', '@azureRKE2'] }, () => {
@@ -38,9 +39,13 @@ describe('Deploy RKE2 cluster using node driver on Azure', { testIsolation: fals
     });
   });
 
-  beforeEach(() => {
-    cy.createE2EResourceName('rke2azure').as('rke2AzureClusterName');
-    cy.createE2EResourceName('azurecloudcredential').as('azureCloudCredentialName');
+  beforeEach(function() {
+    cy.createE2EResourceName('rke2azure').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('rke2AzureClusterName');
+    });
+    cy.createE2EResourceName('azurecloudcredential').then((name) => {
+      cy.wrap(retrySafeResourceName(name, this), { log: false }).as('azureCloudCredentialName');
+    });
   });
 
   qase(7401, it('can not create an Azure RKE2 cluster if invalid Azure credentials are provided', function() {
